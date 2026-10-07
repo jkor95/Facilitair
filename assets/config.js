@@ -5,9 +5,9 @@ window.DALTON_CONFIG = {
   defaultAdminName: 'Jeremy',
   // Vul hier na het deployen van de Supabase Edge Function jouw eigen URL in.
   // Voorbeeld: https://abcdefgh.supabase.co/functions/v1/dalton-api
-  apiUrl: 'https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function',
+  apiUrl: 'VUL_HIER_JOUW_SUPABASE_FUNCTION_URL_IN',
   // Zet dit na publicatie op je echte GitHub Pages URL (zonder querystring).
-  publicUrl: 'https://jkor95.github.io/Facilitair/',
+  publicUrl: 'https://JOUW-GITHUB-NAAM.github.io/dalton-meldpunt/',
   categories: [
     'Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen',
     'Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'

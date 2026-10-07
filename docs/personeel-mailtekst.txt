@@ -12,7 +12,7 @@ Waarvoor gebruik je het meldpunt?
 Hoe maak je een melding?
 1. Scan de QR-code of open de meldlink.
 2. Vul je naam in en, indien gewenst, je e-mailadres.
-3. Vul bij 'Locatie / lokaal / ruimte' zelf duidelijk in waar de melding is, bijvoorbeeld 'lokaal B1.14' of 'mediatheek'.
+3. Vul bij 'Locatie / lokaal / ruimte' zelf duidelijk in waar de melding is, bijvoorbeeld '003', '105', '225' of 'Personeelswerkkamer'.
 4. Kies de juiste categorie en urgentie.
 5. Beschrijf kort wat er aan de hand is.
 6. Voeg indien handig een foto toe.

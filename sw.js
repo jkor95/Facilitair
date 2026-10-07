@@ -1,4 +1,4 @@
-const CACHE = 'dalton-meldpunt-v5-supabase';
+const CACHE = 'dalton-meldpunt-v5-1-supabase';
 const ASSETS = [
   './','./index.html','./manifest.webmanifest','./assets/styles.css','./assets/config.js','./assets/app.js',
   './assets/icon-192.png','./assets/icon-512.png'

@@ -92,7 +92,9 @@ create table if not exists public.dm_invites (
 insert into public.dm_settings(key,value)
 values
   ('showAuditToFacility','false'::jsonb),
-  ('localNotifications','true'::jsonb)
+  ('localNotifications','true'::jsonb),
+  ('reportLocationExamples','["003","105","225","Personeelswerkkamer","Mediatheek","Docentenkamer"]'::jsonb),
+  ('reportTitleExamples','["Docking werkt niet","Lamp kapot","Stoel defect","Deurklink zit los","Stopcontact werkt niet"]'::jsonb)
 on conflict (key) do nothing;
 
 -- Deze tabellen worden NIET rechtstreeks vanuit GitHub Pages benaderd.

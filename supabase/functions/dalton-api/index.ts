@@ -192,7 +192,7 @@ async function getState(account: any) {
     completionMailPreparedAt: t.completion_mail_prepared_at,
     history: histBy.get(t.id) || [],
   })))
-  const settingsObj: any = { showAuditToFacility: false, localNotifications: true }
+  const settingsObj: any = { showAuditToFacility: false, localNotifications: true, reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'] }
   for (const s of settings || []) settingsObj[s.key] = s.value
   let auditRows: any[] = audits || []
   if (account.role === 'facility' && settingsObj.showAuditToFacility) {
@@ -367,6 +367,12 @@ Deno.serve(async (req) => {
     const payload = body.payload || {}
 
     if (action === 'health') return json({ ok:true, version:5 })
+    if (action === 'public_config') {
+      const defaults:any = { reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'] }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['reportLocationExamples','reportTitleExamples'])
+      for (const row of rows || []) defaults[row.key] = row.value
+      return json({ ok:true, settings:defaults })
+    }
     if (action === 'login') {
       const result = await login(payload.username, payload.password)
       if (!result) return json({ error:'Onjuiste inlognaam of wachtwoord' },401)
