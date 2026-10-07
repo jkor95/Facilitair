@@ -1,11 +1,15 @@
-# Versie 1.0 - prototype
+# Dalton Meldpunt v2
 
-Deze versie is bedoeld om de gewenste workflow en gebruikerservaring te testen.
+Prototype-update 7 oktober 2026.
 
-Nog bewust niet actief:
-- schoolaccount-login / leerlingproof beveiliging;
-- centrale gedeelde database tussen apparaten;
-- echte achtergrond-pushmeldingen;
-- volledig automatische e-mailverzending.
+Nieuw in v2:
+- Locatie + lokaal/ruimte samengevoegd tot één vrij invulbaar veld.
+- Facilitaire afronding kan optioneel een e-mail aan de melder voorbereiden.
+- Auditlog zichtbaar als tekst in Beheer.
+- Auditlog filterbaar op van/tot-datum en exporteerbaar naar PDF.
+- Medewerkers/accounts volledig inzichtelijk en bewerkbaar voor hoofdbeheer.
+- Eigen lokale inlognaam + persoonlijk wachtwoord voor facilitair en beheer.
+- Uitnodigings- en wachtwoord-resetlinks voorbereid via de app.
+- Automatische categorie-toewijzing blijft beheerbaar door hoofdbeheer.
 
-De code en schermen zijn voorbereid zodat deze onderdelen in een volgende versie kunnen worden gekoppeld zonder de hele app opnieuw te ontwerpen.
+Let op: dit blijft een lokale GitHub Pages-prototypeversie. Accounts, meldingen en instellingen synchroniseren nog niet tussen apparaten. E-mail wordt als concept geopend via de mail-app en niet zelfstandig verzonden.

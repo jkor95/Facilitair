@@ -1,65 +1,80 @@
-# Dalton Meldpunt v1
+# Dalton Meldpunt v2
 
-Een mobiele GitHub Pages/PWA-prototype voor facilitaire meldingen op school.
+Mobiele GitHub Pages/PWA-prototype voor facilitaire meldingen op school.
 
-## Wat zit erin?
+## Nieuw in v2
 
-- Personeelsformulier met naam, e-mail, locatie, lokaal/ruimte, categorie, urgentie, omschrijving en foto.
-- QR/smart-link ondersteuning via URL-parameters, bijvoorbeeld `?locatie=B-vleugel&ruimte=B1.14`.
-- Facilitair dashboard met open meldingen, filters, statussen, toewijzen en interne notities.
-- Hoofdbeheer met alle meldingen, automatische categorie-toewijzing, medewerkers en volledige auditlog.
-- Auditlog wordt wel opgeslagen maar is standaard niet zichtbaar voor facilitair.
-- Adminwijzigingen sturen in deze prototypeversie geen notificatie naar andere gebruikers.
-- PWA-installatie, service worker en app-badge waar de browser dit ondersteunt.
-- Lokale browsernotificaties voor testdoeleinden.
-- JSON export/import voor backups van de lokale testdata.
-- Personeelsposter en mailtekst in `/docs`.
+- Voor personeel is **Locatie + lokaal/ruimte** samengevoegd tot één vrij invulbaar veld.
+- Bij afronden kan facilitair aanvinken of de melder een afrondingsmail moet krijgen.
+- Beheer heeft een zichtbaar tekst-auditlog met **Van / Tot en met** datumfilter.
+- Auditlog kan rechtstreeks als eenvoudige PDF worden geëxporteerd.
+- Hoofdbeheer kan accounts/medewerkers bekijken en bewerken.
+- Facilitair en hoofdbeheer hebben een eigen inlognaam en persoonlijk wachtwoord.
+- Hoofdbeheer kan een uitnodiging of wachtwoord-resetmail voorbereiden.
+- Automatische toewijzing per categorie blijft instelbaar door hoofdbeheer.
+- Volledige lokale JSON back-up/import blijft beschikbaar.
 
-## Belangrijk: prototype, nog niet voor echte schooldata
+## Demo-inlog
 
-Deze versie gebruikt `localStorage`. Daardoor staan meldingen alleen in de browser op het apparaat waarop ze zijn gemaakt en worden ze nog niet tussen telefoons/computers gedeeld. Er is ook nog geen echte authenticatie.
+Bij een schone installatie zijn deze testaccounts beschikbaar:
 
-Gebruik deze versie dus om de workflow, vormgeving en functies te testen. Voor echte ingebruikname koppelen we hierna een beveiligde gedeelde backend, accounts/rechten, echte pushmeldingen en automatische e-mail aan.
+- Hoofdbeheer: `JKO` / `demo-admin`
+- Facilitair: `CON1` / `demo-facilitair`
+- Facilitair: `FAC1` / `demo-facilitair`
+
+Wijzig deze direct via **Beheer > Medewerkers & accounts** als je met het prototype gaat spelen.
+
+## Belangrijk: nog steeds een lokaal prototype
+
+Deze versie draait volledig in de browser en gebruikt `localStorage`.
+
+Dat betekent:
+- accounts en meldingen worden nog **niet centraal tussen apparaten gesynchroniseerd**;
+- wachtwoorden worden lokaal gehasht opgeslagen en zijn daarom niet terug te lezen;
+- hoofdbeheer kan wel een nieuw wachtwoord instellen;
+- uitnodigings-/resetlinks demonstreren de gewenste flow, maar maken het account op het apparaat waarop de link wordt geopend;
+- e-mail wordt als mailconcept geopend (`mailto:`), niet zelfstandig door de website verzonden;
+- echte achtergrond-push tussen verschillende telefoons vereist later een backend/pushservice.
+
+Gebruik deze versie alleen met testgegevens. De leerlingproof/AVG-beveiliging en gedeelde backend komen in een volgende stap.
 
 ## Publiceren op GitHub Pages
 
-1. Maak een nieuwe repository, bijvoorbeeld `dalton-meldpunt`.
-2. Upload alle bestanden uit deze map naar de root van de repository.
-3. Open GitHub -> Settings -> Pages.
-4. Kies bij Source: `Deploy from a branch`.
-5. Kies branch `main` en map `/root`.
-6. Sla op. GitHub toont daarna je Pages-adres.
-7. Open `assets/config.js` en vervang `publicUrl` door dat adres.
-8. Vervang ook `conciergeEmail` door het echte functionele e-mailadres.
+1. Maak een repository, bijvoorbeeld `dalton-meldpunt`.
+2. Upload alle bestanden uit deze map naar de root.
+3. GitHub -> **Settings -> Pages**.
+4. Kies **Deploy from a branch**.
+5. Kies `main` en `/root`.
+6. Sla op en kopieer het GitHub Pages-adres.
+7. Open `assets/config.js` en vervang `publicUrl` door het echte adres.
+8. Vervang `conciergeEmail` door het functionele conciërge/facilitair e-mailadres.
+
+## Testflow
+
+1. Open de startpagina en maak als personeelslid een melding.
+2. Kies **Facilitair / beheer inloggen**.
+3. Log in als `CON1` en behandel/toewijs de melding.
+4. Vul bij de melding een e-mailadres van de melder in als je de afrondingsmail wilt testen.
+5. Vink **Melder e-mailen zodra melding wordt afgerond** aan en zet de status op **Afgerond**.
+6. De standaard mail-app opent met een ingevulde afrondingsmail.
+7. Log uit en log als `JKO` in.
+8. Bekijk het auditlog, kies een datumperiode en exporteer het als PDF.
+9. Beheer accounts, inlognamen, e-mailadressen, rollen en automatische categorie-toewijzing.
 
 ## iPhone beginscherm
 
-Open de GitHub Pages-link in Safari -> Deel -> Zet op beginscherm.
+Open de GitHub Pages-link in Safari -> Deel -> **Zet op beginscherm**.
 
-De badgefunctie gebruikt de standaard Badging API waar iOS/browser dit toestaat. Achtergrond-push naar een gesloten app vereist later een echte push/backend-koppeling.
+De badgefunctie gebruikt de Badging API waar iOS/browser dit ondersteunt. Echte achtergrond-push volgt pas bij de centrale versie.
 
-## Handige smart links / QR-codes
+## Smart links / QR-codes
 
 Gewone meldlink:
 
 `https://.../dalton-meldpunt/`
 
-Voor een vaste locatie:
+Voor een vooraf ingevulde locatie:
 
-`https://.../dalton-meldpunt/?locatie=Mediatheek`
+`https://.../dalton-meldpunt/?locatie=Lokaal%20B1.14`
 
-Voor een specifiek lokaal:
-
-`https://.../dalton-meldpunt/?locatie=B-vleugel&ruimte=B1.14`
-
-Let op: URL-tekens/spaties moeten bij echte QR-links netjes URL-encoded worden.
-
-## Demo-rollen
-
-Onderin (mobiel) of rechtsboven (desktop) kun je tijdelijk wisselen tussen:
-
-- Melden
-- Facilitair
-- Beheer
-
-Dit is alleen om de app nu zonder login te kunnen testen. In een beveiligde versie verdwijnt deze rolwisselaar.
+Oudere links met `locatie` + `ruimte` blijven ook werken; de app voegt ze samen tot één locatieveld.
