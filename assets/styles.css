@@ -19,3 +19,5 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 .photo-actions{display:flex;gap:8px;flex-wrap:wrap}.hidden-file{display:none!important}.photo-actions .btn{flex:1;min-width:130px}
 
 @media(max-width:850px){.logo{width:102px;height:58px;flex-basis:102px}.brand{gap:10px}.brand h1{font-size:20px}}
+
+.notification-urgencies{display:grid;gap:7px}.notification-urgencies>div{margin-bottom:2px}.check-row{display:flex;align-items:center;gap:8px;font-weight:600;margin:0}.check-row input{width:auto;margin:0}
