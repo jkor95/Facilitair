@@ -1,10 +1,8 @@
-# Dalton Meldpunt v5.2
+# Dalton Meldpunt v5.3
 
-- Meldformulier compacter en sneller gemaakt.
-- E-mailadres verwijderd van het openbare meldformulier.
-- Bovenste login-knop heet nu `Facilitair inloggen`.
-- Naam en locatie staan naast elkaar.
-- Meldingstitel is nu de directe vraag `Wat is er aan de hand?`.
-- Extra toelichting en foto zijn duidelijk optioneel.
-- `Meldingen toestaan` verwijderd van het openbare meldformulier.
-- Voorbeelden blijven centraal door Admin aanpasbaar.
+- Facilitair kan per apparaat zelf meldingen en app-badges aan- of uitzetten.
+- Nieuwe centrale tickets geven tijdens actief gebruik van de PWA/browser een lokale melding wanneer meldingen zijn ingeschakeld.
+- Facilitaire meldingen openen standaard op **Alle open**; **Aan mij** blijft als tweede filter beschikbaar.
+- Foto toevoegen is opgesplitst in **Camera** en **Foto kiezen** zodat de fotobibliotheek niet automatisch de camera opent.
+- Bestaande Supabase Function URL en GitHub Pages URL zijn al ingevuld.
+- Nieuwe service-worker cacheversie om oude schermen sneller te vervangen.
