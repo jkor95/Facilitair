@@ -1,53 +1,28 @@
-# Dalton Meldpunt v3 - centrale app
+# Dalton Meldpunt v5 - GitHub + Supabase synchronisatie
 
-Dit is de eerste **centrale** versie van Dalton Meldpunt. De frontend blijft een PWA op GitHub Pages, maar meldingen, accounts, rollen, auditlog, toewijzingen en wachtwoorden staan centraal in een Cloudflare Worker + D1 database. Er wordt geen Supabase gebruikt.
+Dit is de centrale multi-device versie van Dalton Meldpunt.
+
+## Architectuur
+
+- GitHub Pages: PWA/interface
+- Supabase Postgres: centrale accounts, meldingen, routing en auditlog
+- Supabase Storage: private foto's
+- Supabase Edge Function `dalton-api`: eigen Dalton-login en alle databasehandelingen
+- Supabase Auth: **niet gebruikt**
+
+Personeel, facilitair en hoofdbeheer loggen alleen in via Dalton Meldpunt.
 
 ## Eerste beheeraccount
 
-Na de eerste database-installatie wordt bij de eerste login automatisch één hoofdbeheeraccount gemaakt:
+Bij een lege database wordt bij de eerste login automatisch aangemaakt:
 
-- gebruikersnaam: `Admin`
-- wachtwoord: `Admin`
+- gebruikersnaam `Admin`
+- wachtwoord `Admin`
 
-Je kunt daarna in **Medewerkers & accounts** de naam en gebruikersnaam wijzigen. Het eigen wachtwoord kun je via **Wachtwoord wijzigen** aanpassen.
+Wijzig dit daarna vanuit Beheer.
 
-## Wat werkt centraal
+## Belangrijk
 
-- personeel dient meldingen in via dezelfde openbare GitHub Pages-link;
-- meldingen verschijnen op andere apparaten bij facilitair en hoofdbeheer;
-- één vrij veld voor locatie / lokaal / ruimte;
-- foto toevoegen;
-- status, interne notitie en toewijzing;
-- automatische toewijzing per categorie;
-- medewerkersaccounts met eigen gebruikersnaam en wachtwoord;
-- hoofdbeheer kan accounts bekijken/bewerken/blokkeren;
-- hoofdbeheer kan wachtwoorden **inzien en aanpassen**;
-- wachtwoorden zijn in de database versleuteld opgeslagen, niet als platte tekst;
-- uitnodigings- en resetlinks vanuit de app;
-- auditlog alleen voor hoofdbeheer, met datumfilter en PDF-export;
-- wijzigingen door hoofdbeheer zijn standaard stil (geen interne notificatie);
-- badge telt open acties wanneer de PWA actief is;
-- browsermeldingen terwijl de PWA geopend/actief is;
-- e-mail naar conciërge en afrondingsmail naar melder zodra e-mail is geconfigureerd.
+Plaats nooit een Supabase secret/service-role key of `DALTON_MASTER_KEY` in GitHub. De frontend bevat alleen de openbare URL van de Edge Function.
 
-## Belangrijk over wachtwoorden inzien
-
-Normaal hoort een beheerder een wachtwoord alleen te kunnen resetten. Op jouw expliciete verzoek is v3 zo gebouwd dat hoofdbeheer het actuele wachtwoord kan teruglezen. Daarom bewaart de backend naast de login-hash ook een AES-GCM-versleutelde kopie. De geheime sleutel staat alleen als Cloudflare-secret en **nooit in GitHub**.
-
-Als die geheime sleutel uitlekt, kunnen opgeslagen wachtwoorden worden ontsleuteld. Gebruik daarom unieke wachtwoorden voor deze app en hergebruik geen Microsoft-/schoolwachtwoorden.
-
-## Mappen
-
-- `index.html`, `assets/`, `manifest.webmanifest`, `sw.js`: GitHub Pages frontend.
-- `backend/`: Cloudflare Worker + D1 database.
-- `docs/`: personeelsposter en uitleg.
-
-Lees **INSTALLATIE.md** voor de eenmalige installatie.
-
-## Nog bewust niet leerlingproof
-
-Het openbare meldformulier vereist in deze versie nog geen personeelslogin. Dat is bewust zo gelaten op basis van de huidige afspraak. De centrale backend is wel zo opgezet dat we in een volgende versie personeelsverificatie vóór het meldformulier kunnen toevoegen zonder de meldingen- of accountstructuur opnieuw te bouwen.
-
-## Push bij volledig gesloten app
-
-V3 heeft centrale notificaties, badge-updates en browsermeldingen wanneer de PWA actief is. Volledige Web Push wanneer de iPhone-app volledig gesloten is vereist nog een aparte pushconfiguratie (bijvoorbeeld VAPID/een pushdienst). Dat staat los van de centrale database en kan later worden toegevoegd.
+Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md` voor de volledige installatie.

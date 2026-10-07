@@ -1,0 +1,2 @@
+[functions.dalton-api]
+verify_jwt = false

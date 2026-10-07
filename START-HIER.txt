@@ -1,0 +1,12 @@
+DALTON MELDPUNT v5 - CENTRAAL GESYNCHRONISEERD
+
+1. Lees INSTALLATIE-SUPABASE-EN-GITHUB.md
+2. Voer supabase/schema.sql uit in Supabase SQL Editor.
+3. Genereer DALTON_MASTER_KEY met tools/genereer-master-key.html en zet hem bij Edge Function Secrets.
+4. Deploy supabase/functions/dalton-api/index.ts als Edge Function 'dalton-api'.
+5. Zet Verify JWT voor deze function UIT.
+6. Vul de Function URL en GitHub Pages URL in assets/config.js.
+7. Upload de website naar GitHub Pages.
+8. Eerste login: Admin / Admin.
+
+Supabase Auth wordt niet gebruikt.
