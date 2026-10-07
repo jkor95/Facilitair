@@ -1,20 +1,19 @@
-# Meldpunt VWO v5.7.3
+# Meldpunt VWO v5.7.4
 
 Centrale GitHub Pages + Supabase versie zonder e-mailfunctionaliteit.
 
-## Nieuw in v5.7.3
-- Admin kan categorieën toevoegen.
-- Admin kan categorieën verwijderen.
-- Admin kan de categorievolgorde aanpassen met omhoog/omlaag.
-- De categorievolgorde wordt gebruikt op de openbare meldpagina.
-- **Automatische toewijzing** gebruikt direct dezelfde actuele categorieën.
-- Verwijderde categorieën blijven bij bestaande oude tickets herkenbaar als vervallen.
+## Nieuw in v5.7.4
+- Modalvensters sluiten niet meer door naast het venster te klikken.
+- Nieuwe rol **Conciërge**.
+- Nieuwe beheersectie **Rollen & rechten**.
+- Aparte zicht- en wijzigrechten voor Facilitair en Conciërge.
+- Rechten worden server-side afgedwongen.
+- Conciërges kunnen worden gebruikt bij automatische toewijzing.
+- Geen SQL-migratie nodig.
 
 ## Update
-Voor deze versie is **geen SQL-migratie nodig**.
-
 Wel nodig:
-1. de bestaande Supabase Edge Function `smart-function` vervangen door de meegeleverde `supabase/functions/dalton-api/index.ts`;
+1. bestaande Supabase Edge Function `smart-function` vervangen door `supabase/functions/dalton-api/index.ts`;
 2. daarna de GitHub-bestanden vervangen.
 
-Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md` voor de exacte stappen.
+Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md`.

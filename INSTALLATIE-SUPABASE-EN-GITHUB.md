@@ -1,48 +1,53 @@
-# Meldpunt VWO v5.7.3 installeren/updaten
+# Meldpunt VWO v5.7.4 installeren/updaten
 
 ## Wat is nieuw
-De beheerder kan nu centraal categorieën beheren:
-- categorie toevoegen;
-- categorie verwijderen;
-- volgorde wijzigen met omhoog/omlaag;
-- dezelfde lijst en volgorde wordt direct gebruikt op de openbare meldpagina;
-- dezelfde lijst en volgorde wordt direct gebruikt bij **Automatische toewijzing**.
+- Een geopend venster sluit niet meer als je per ongeluk naast het venster klikt.
+- Nieuwe operationele rol **Conciërge** naast **Facilitair**.
+- Admin krijgt een uitgebreid inklapbaar onderdeel **Rollen & rechten**.
+- Voor Facilitair en Conciërge kun je afzonderlijk instellen welke meldingen/details zichtbaar zijn en welke onderdelen gewijzigd mogen worden.
+- De rechten worden niet alleen in de website verborgen, maar ook in de Edge Function gecontroleerd.
+- Conciërges kunnen net als Facilitair worden gebruikt bij **Automatische toewijzing**.
 
-Bestaande meldingen houden hun oude categorie als die later wordt verwijderd. Bij het bewerken van zo'n oude melding wordt die categorie als **vervallen** weergegeven totdat je een actieve categorie kiest.
+## Supabase: geen SQL-migratie nodig
+Voor v5.7.4 is **geen SQL / database-migratie** nodig.
 
-## Supabase: geen SQL nodig
-Voor v5.7.3 is **geen database-migratie / SQL** nodig. De categorieën worden opgeslagen in de bestaande `dm_settings`-instellingen.
+De rol Conciërge en de rechtenmatrix worden opgeslagen in de bestaande centrale `dm_settings`. Daardoor hoeft de bestaande `dm_accounts`-tabel niet te worden aangepast.
 
-Er is wel **één Edge Function-update** nodig, zodat de openbare meldpagina de centrale categorieën kan ophalen.
+Er is wel **één update van de bestaande Edge Function** nodig, omdat rechten server-side moeten worden gecontroleerd.
 
 1. Ga in Supabase naar **Edge Functions**.
-2. Open je bestaande functie **smart-function**.
+2. Open de bestaande functie **smart-function**.
 3. Kies **Edit** en open `index.ts`.
 4. Open uit deze ZIP: `supabase/functions/dalton-api/index.ts`.
 5. Vervang de volledige inhoud van de bestaande `index.ts` door deze nieuwe inhoud.
 6. Klik **Deploy updates**.
 7. Laat **Verify JWT UIT** staan.
 
-Maak geen nieuwe functie aan. De bestaande URL blijft:
+Maak geen nieuwe functie aan. De URL blijft:
 `https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function`
 
 ## GitHub
-Na de Edge Function-update:
+Daarna:
 
-1. Open je GitHub repository `Facilitair`.
+1. Open de GitHub repository `Facilitair`.
 2. Vervang de bestaande websitebestanden door de inhoud van deze ZIP.
-3. Zorg dat `index.html`, `assets/`, `sw.js` en `manifest.webmanifest` direct in de repository-root staan.
+3. `index.html`, `assets/`, `sw.js` en `manifest.webmanifest` moeten direct in de repository-root staan.
 4. Wacht tot GitHub Pages opnieuw is gedeployed.
 5. Open normaal: `https://jkor95.github.io/Facilitair/`
 
-Alleen als je nog een oude versie uit de cache ziet kun je tijdelijk openen met:
-`https://jkor95.github.io/Facilitair/?v=5.7.3`
+Zie je toch nog een oude cacheversie, open dan tijdelijk:
+`https://jkor95.github.io/Facilitair/?v=5.7.4`
 
-## Categorieën gebruiken
-Log in als beheerder en open **Categorieën**.
-- Gebruik **Toevoegen** voor een nieuwe categorie.
-- Gebruik **↑ / ↓** om de volgorde te wijzigen.
-- Gebruik **Verwijderen** om een categorie uit de actieve lijst te halen.
-- Klik daarna **Categorieën opslaan**.
+## Rollen & rechten gebruiken
+Ga als beheerder naar **Rollen & rechten**. Voor zowel **Facilitair** als **Conciërge** kun je onder andere instellen:
 
-Na opslaan worden zowel **Melding maken** als **Automatische toewijzing** direct bijgewerkt.
+- alle open meldingen bekijken;
+- eigen toegewezen meldingen bekijken;
+- niet-toegewezen meldingen bekijken;
+- afgeronde meldingen bekijken;
+- meldergegevens, foto's, toewijzing, interne notities en wijzigingsgeschiedenis bekijken;
+- browsermeldingen/badges gebruiken;
+- locatie, categorie, urgentie, status, toewijzing en interne notitie wijzigen;
+- eventueel meldingen definitief verwijderen.
+
+Klik daarna op **Rollen & rechten opslaan**. De instellingen gelden direct voor alle accounts met die rol.

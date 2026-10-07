@@ -1,0 +1,7 @@
+Voor de update van v5.7.3 naar v5.7.4 is GEEN SQL-migratie nodig.
+
+Wel uitvoeren:
+1. Supabase Edge Function smart-function bijwerken met supabase/functions/dalton-api/index.ts
+2. GitHub-bestanden vervangen
+
+De nieuwe rol Conciërge wordt zonder schemawijziging centraal beheerd via dm_settings.

@@ -1,10 +1,12 @@
-# Meldpunt VWO v5.7.3
+# Meldpunt VWO v5.7.4
 
 ## Wijzigingen
-- Nieuwe inklapbare beheersectie **Categorieën**.
-- Categorieën toevoegen, verwijderen en sorteren.
-- De centrale categorievolgorde wordt direct gebruikt bij **Melding maken**.
-- **Automatische toewijzing** gebruikt dezelfde centrale categorieën en volgorde.
-- Bestaande meldingen behouden een verwijderde categorie als historische waarde; bij bewerken staat deze als **vervallen**.
-- Geen nieuwe databasekolommen of SQL-migratie nodig.
-- Wel één update van de bestaande Supabase Edge Function nodig voor `public_config`.
+- Klikken naast een modalvenster sluit het venster niet meer.
+- Rol **Conciërge** toegevoegd zonder nieuwe databasekolom.
+- Uitgebreid centraal beheer van rolrechten voor **Facilitair** en **Conciërge**.
+- Zichtrechten voor ticketgroepen en ticketdetails.
+- Wijzigrechten per ticketveld.
+- Optioneel recht om meldingen te verwijderen.
+- Server-side controle van dezelfde rechten.
+- Automatische toewijzing ondersteunt Conciërges.
+- Geen SQL-migratie nodig; alleen Edge Function + GitHub-update.

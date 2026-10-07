@@ -56,3 +56,13 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 .category-add-row{display:flex;gap:8px;margin-top:14px;align-items:center}
 .category-add-row input{flex:1;min-width:0}
 @media(max-width:650px){.category-row{align-items:flex-start;flex-wrap:wrap}.category-actions{width:100%;padding-left:38px;justify-content:flex-start}.category-add-row{flex-direction:column;align-items:stretch}}
+
+/* v5.7.4 - rollen & rechten */
+.permission-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.permission-role-card{border:1px solid var(--line);border-radius:16px;padding:15px;background:#fbfcfc;min-width:0}
+.permission-role-head h4{margin:0 0 3px;font-size:17px}
+.permission-group{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;display:grid;gap:8px}
+.permission-group>b{font-size:13px;color:var(--ink)}
+.permission-row{padding:5px 0}
+.permission-danger{color:var(--danger)}
+@media(max-width:850px){.permission-role-grid{grid-template-columns:1fr}}
