@@ -11,7 +11,6 @@ Waarvoor gebruik je het meldpunt?
 
 Hoe maak je een melding?
 1. Scan de QR-code of open de meldlink.
-2. Vul je naam in en, indien gewenst, je e-mailadres.
 3. Vul bij 'Locatie / lokaal / ruimte' zelf duidelijk in waar de melding is, bijvoorbeeld '003', '105', '225' of 'Personeelswerkkamer'.
 4. Kies de juiste categorie en urgentie.
 5. Beschrijf kort wat er aan de hand is.
@@ -20,7 +19,6 @@ Hoe maak je een melding?
 
 Je ontvangt direct een meldingsnummer. Facilitair kan de melding daarna behandelen en intern toewijzen.
 
-Heb je je e-mailadres ingevuld? Dan kan de medewerker die de melding afrondt ervoor kiezen om je een afrondingsbericht per e-mail te sturen.
 
 Gebruik 'Spoed' alleen als snelle actie echt noodzakelijk is. Bij direct gevaar of een noodsituatie volg je altijd de geldende interne noodprocedure en neem je direct contact op met de daarvoor aangewezen collega.
 

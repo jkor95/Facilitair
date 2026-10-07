@@ -1,6 +1,9 @@
-# Meldpunt VWO v5.6.8
+# Meldpunt VWO v5.7.1
 
-- Standaard e-mailadres van het Admin-account ingesteld op j.korstanje@dalton-dordrecht.nl.
-- Het adres blijft volledig bewerkbaar via Beheer > Medewerkers & accounts.
-- Nieuwe installaties krijgen hetzelfde standaardadres voor het eerste Admin-account.
-- Browser/PWA-cache bijgewerkt naar v5.6.8.
+- Alle e-mailfunctionaliteit voor facilitair verwijderd.
+- Geen afzender- of ontvangerinstellingen meer.
+- Geen Resend/API-key nodig.
+- Behoudt inklapbaar Mijn account en Automatische toewijzing.
+- Behoudt meervoudige automatische toewijzing en optie Iedereen.
+- Behoudt dagelijkse ticketnummering M-YYMMDD### met beheer van het volgende dagnummer.
+- Behoudt beheerbare meldpagina, badges/notificaties, accounts en auditlog.
