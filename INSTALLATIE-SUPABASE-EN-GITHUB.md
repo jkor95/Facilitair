@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.7.4 installeren/updaten
+# Meldpunt VWO v5.7.5 installeren/updaten
 
 ## Wat is nieuw
 - Een geopend venster sluit niet meer als je per ongeluk naast het venster klikt.
@@ -9,7 +9,7 @@
 - Conciërges kunnen net als Facilitair worden gebruikt bij **Automatische toewijzing**.
 
 ## Supabase: geen SQL-migratie nodig
-Voor v5.7.4 is **geen SQL / database-migratie** nodig.
+Voor v5.7.5 is **geen SQL / database-migratie** nodig.
 
 De rol Conciërge en de rechtenmatrix worden opgeslagen in de bestaande centrale `dm_settings`. Daardoor hoeft de bestaande `dm_accounts`-tabel niet te worden aangepast.
 
@@ -36,7 +36,7 @@ Daarna:
 5. Open normaal: `https://jkor95.github.io/Facilitair/`
 
 Zie je toch nog een oude cacheversie, open dan tijdelijk:
-`https://jkor95.github.io/Facilitair/?v=5.7.4`
+`https://jkor95.github.io/Facilitair/?v=5.7.5`
 
 ## Rollen & rechten gebruiken
 Ga als beheerder naar **Rollen & rechten**. Voor zowel **Facilitair** als **Conciërge** kun je onder andere instellen:
@@ -51,3 +51,6 @@ Ga als beheerder naar **Rollen & rechten**. Voor zowel **Facilitair** als **Conc
 - eventueel meldingen definitief verwijderen.
 
 Klik daarna op **Rollen & rechten opslaan**. De instellingen gelden direct voor alle accounts met die rol.
+
+## Update v5.7.5
+Geen SQL uitvoeren. Vervang wel de bestaande Edge Function `smart-function` met `supabase/functions/dalton-api/index.ts` en upload daarna de GitHub-bestanden. `Verify JWT` blijft uit.

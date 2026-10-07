@@ -1,12 +1,8 @@
-# Meldpunt VWO v5.7.4
+# Meldpunt VWO v5.7.5
 
-## Wijzigingen
-- Klikken naast een modalvenster sluit het venster niet meer.
-- Rol **Conciërge** toegevoegd zonder nieuwe databasekolom.
-- Uitgebreid centraal beheer van rolrechten voor **Facilitair** en **Conciërge**.
-- Zichtrechten voor ticketgroepen en ticketdetails.
-- Wijzigrechten per ticketveld.
-- Optioneel recht om meldingen te verwijderen.
-- Server-side controle van dezelfde rechten.
-- Automatische toewijzing ondersteunt Conciërges.
-- Geen SQL-migratie nodig; alleen Edge Function + GitHub-update.
+Wijzigingen:
+- Als `Kan les / werk doorgaan?` op `Nee` wordt gezet, wordt de urgentie automatisch `SPOED`.
+- Bij deze keuze verschijnt direct een rode instructie om ook een conciërge te bellen voor een snelle oplossing.
+- De urgentiekeuze wordt zolang `Nee` gekozen is vastgezet op `SPOED`.
+- De Edge Function dwingt dezelfde regel server-side af; een melding met `canContinue = nee` kan daardoor niet als lagere urgentie worden opgeslagen.
+- Geen SQL-migratie nodig.

@@ -342,14 +342,16 @@ async function createTicket(payload: any, actorAccount: any | null) {
     if (!routeIds.length && route?.account_id) routeIds = [route.account_id]
   }
   const primary = routeIds[0] || null
+  const canContinue = String(payload.canContinue || 'ja')
+  const urgency = canContinue === 'nee' ? 'spoed' : String(payload.urgency || 'normaal')
   const { data: inserted, error } = await db.from('dm_tickets').insert({
     reporter: String(payload.reporter || '').slice(0,160),
     location: String(payload.location || '').slice(0,300),
     category,
-    urgency: String(payload.urgency || 'normaal'),
+    urgency,
     title: String(payload.title || '').slice(0,160),
     description: String(payload.description || '').slice(0,6000),
-    can_continue: String(payload.canContinue || 'ja'),
+    can_continue: canContinue,
     status: 'open',
     assignee: primary,
   }).select('*').single()
@@ -498,7 +500,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.74 })
+    if (action === 'health') return json({ ok:true, version:5.75 })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize'])

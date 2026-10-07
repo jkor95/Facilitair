@@ -19,6 +19,73 @@ const db = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
+
+const DEFAULT_ROLE_PERMISSIONS:any = {
+  facility: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+  concierge: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+}
+const DEFAULT_SETTINGS:any = {
+  showAuditToFacility:false,
+  localNotifications:true,
+  rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+  accountRoleOverrides:{},
+  categories:['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'],
+  reportLocationExamples:['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'],
+  reportTitleExamples:['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'],
+  reportHeroTitle:'Facilitaire melding',
+  reportHeroIntro:'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.',
+  reportHeroLocation:'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.',
+  reportHeroEmergency:'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.',
+  reportHeroTitleSize:30, reportHeroIntroSize:14, reportHeroLocationSize:16, reportHeroEmergencySize:12,
+}
+function normalizeRolePermissions(input:any){
+  const out:any = {}
+  for (const role of ['facility','concierge']) {
+    out[role] = { ...DEFAULT_ROLE_PERMISSIONS[role], ...(input?.[role] || {}) }
+    if (out[role].editAssignment) out[role].viewAssignment = true
+    if (out[role].editInternalNote) out[role].viewInternalNote = true
+  }
+  return out
+}
+async function loadSettingsObj(){
+  const { data, error } = await db.from('dm_settings').select('*')
+  if (error) throw error
+  const out:any = { ...DEFAULT_SETTINGS, rolePermissions:normalizeRolePermissions(null), accountRoleOverrides:{} }
+  for (const row of data || []) out[row.key] = row.value
+  out.rolePermissions = normalizeRolePermissions(out.rolePermissions)
+  if (!out.accountRoleOverrides || typeof out.accountRoleOverrides !== 'object' || Array.isArray(out.accountRoleOverrides)) out.accountRoleOverrides = {}
+  return out
+}
+async function saveSetting(key:string,value:any){
+  const { error } = await db.from('dm_settings').upsert({ key, value, updated_at:new Date().toISOString() })
+  if (error) throw error
+}
+function effectiveRole(account:any, settings:any){
+  const override = settings?.accountRoleOverrides?.[account?.id]
+  return override === 'concierge' ? 'concierge' : account?.role
+}
+function permissionsFor(role:string, settings:any){
+  if (role === 'admin') return new Proxy({}, { get:()=>true })
+  return normalizeRolePermissions(settings?.rolePermissions)[role] || {}
+}
+function isOperationalRole(role:string){ return role === 'facility' || role === 'concierge' }
+function ticketVisibleFor(account:any, role:string, perms:any, ticket:any, assigneeIds:string[]){
+  if (role === 'admin') return true
+  if (!isOperationalRole(role)) return false
+  if (ticket.status === 'done') return !!perms.viewCompleted
+  if (perms.viewAllOpen) return true
+  if (assigneeIds.includes(account.id) && perms.viewAssigned) return true
+  if (!assigneeIds.length && perms.viewUnassigned) return true
+  return false
+}
+async function setAccountRoleOverride(accountId:string, requestedRole:string){
+  const settings = await loadSettingsObj()
+  const overrides = { ...(settings.accountRoleOverrides || {}) }
+  if (requestedRole === 'concierge') overrides[accountId] = 'concierge'
+  else delete overrides[accountId]
+  await saveSetting('accountRoleOverrides', overrides)
+}
+
 const enc = new TextEncoder()
 const dec = new TextDecoder()
 
@@ -121,8 +188,10 @@ async function login(username: string, password: string) {
   await db.from('dm_sessions').delete().eq('account_id', account.id).lt('expires_at', new Date().toISOString())
   const { error } = await db.from('dm_sessions').insert({ account_id: account.id, token_hash: tokenHash, expires_at: expires })
   if (error) throw error
+  const settings = await loadSettingsObj()
+  const clientAccount = { ...account, role:effectiveRole(account,settings) }
   await audit(account.name, account.id, 'account', account.id, 'Ingelogd')
-  return { token, account: safeAccount(account, false), expiresAt: expires }
+  return { token, account: safeAccount(clientAccount, false), expiresAt: expires }
 }
 
 function safeAccount(a: any, includePassword = false, plainPassword = '') {
@@ -140,24 +209,27 @@ async function signedPhoto(path: string | null) {
   return data?.signedUrl || null
 }
 
-async function getState(account: any) {
-  if (account.role === 'staff') {
+async function getState(account: any, existingSettings?: any) {
+  const settingsObj:any = existingSettings || await loadSettingsObj()
+  const role = effectiveRole(account, settingsObj)
+  const clientAccount = { ...account, role }
+  if (role === 'staff') {
     return {
-      version: 5.71,
-      currentAccount: safeAccount(account, false),
+      version: 5.74,
+      currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
-      settings: { showAuditToFacility: false, localNotifications: true }, auditLog: [],
+      settings: settingsObj, auditLog: [],
     }
   }
-  const [{ data: accounts }, { data: tickets }, { data: histories }, { data: routing }, { data: routingMembers }, { data: ticketAssignments }, { data: settings }, { data: audits }] = await Promise.all([
+  const perms = permissionsFor(role, settingsObj)
+  const [{ data: accounts }, { data: tickets }, { data: histories }, { data: routing }, { data: routingMembers }, { data: ticketAssignments }, { data: audits }] = await Promise.all([
     db.from('dm_accounts').select('*').order('name'),
     db.from('dm_tickets').select('*').order('created_at', { ascending: false }),
     db.from('dm_ticket_history').select('*').order('at'),
     db.from('dm_routing').select('*'),
     db.from('dm_routing_members').select('*'),
     db.from('dm_ticket_assignments').select('*'),
-    db.from('dm_settings').select('*'),
-    account.role === 'admin' ? db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000) : Promise.resolve({ data: [] }),
+    role === 'admin' ? db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000) : Promise.resolve({ data: [] }),
   ])
   const histBy = new Map<number, any[]>()
   for (const h of histories || []) {
@@ -175,48 +247,53 @@ async function getState(account: any) {
     routingMemberMap.get(x.category)!.push(x.account_id)
   }
   const mappedAccounts = []
-  for (const a of accounts || []) {
+  for (const raw of accounts || []) {
     let pw = ''
-    if (account.role === 'admin') {
-      try { pw = await decryptPassword(a.password_cipher, a.password_iv) } catch { pw = '(niet leesbaar)' }
+    if (role === 'admin') {
+      try { pw = await decryptPassword(raw.password_cipher, raw.password_iv) } catch { pw = '(niet leesbaar)' }
     }
-    mappedAccounts.push(safeAccount(a, account.role === 'admin', pw))
+    const effective = { ...raw, role:effectiveRole(raw,settingsObj) }
+    if (role !== 'admin' && !isOperationalRole(effective.role)) continue
+    mappedAccounts.push(safeAccount(effective, role === 'admin', pw))
   }
-  const mappedTickets = await Promise.all((tickets || []).map(async t => ({
-    id: t.ticket_no || `M-${t.id}`,
-    dbId: t.id,
-    createdAt: t.created_at,
-    updatedAt: t.updated_at,
-    reporter: t.reporter,
-    location: t.location,
-    category: t.category,
-    urgency: t.urgency,
-    title: t.title,
-    description: t.description,
-    canContinue: t.can_continue,
-    photo: await signedPhoto(t.photo_path),
-    photoPath: t.photo_path,
-    status: t.status,
-    assignee: t.assignee || '',
-    assignees: ticketAssigneeMap.get(t.id) || (t.assignee ? [t.assignee] : []),
-    internalNote: t.internal_note,
-    history: histBy.get(t.id) || [],
-  })))
-  const settingsObj: any = { showAuditToFacility: false, localNotifications: true, reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
-  for (const s of settings || []) settingsObj[s.key] = s.value
-  let auditRows: any[] = audits || []
-  if (account.role === 'facility' && settingsObj.showAuditToFacility) {
-    const { data: facilityAudits } = await db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000)
-    auditRows = facilityAudits || []
-  }
+  const visibleRows = (tickets || []).filter((t:any)=>{
+    const ids = ticketAssigneeMap.get(t.id) || (t.assignee ? [t.assignee] : [])
+    return ticketVisibleFor(account,role,perms,t,ids)
+  })
+  const mappedTickets = await Promise.all(visibleRows.map(async (t:any) => {
+    const fullIds = ticketAssigneeMap.get(t.id) || (t.assignee ? [t.assignee] : [])
+    const showAssignment = role === 'admin' || !!perms.viewAssignment
+    return {
+      id: t.ticket_no || `M-${t.id}`,
+      dbId: t.id,
+      createdAt: t.created_at,
+      updatedAt: t.updated_at,
+      reporter: role === 'admin' || perms.viewReporter ? t.reporter : '',
+      location: t.location,
+      category: t.category,
+      urgency: t.urgency,
+      title: t.title,
+      description: t.description,
+      canContinue: role === 'admin' || perms.viewReporter ? t.can_continue : '',
+      photo: role === 'admin' || perms.viewPhoto ? await signedPhoto(t.photo_path) : null,
+      photoPath: role === 'admin' || perms.viewPhoto ? t.photo_path : null,
+      status: t.status,
+      assignee: showAssignment ? (t.assignee || '') : '',
+      assignees: showAssignment ? fullIds : [],
+      assignedToMe: fullIds.includes(account.id),
+      unassigned: fullIds.length === 0,
+      internalNote: role === 'admin' || perms.viewInternalNote ? t.internal_note : '',
+      history: role === 'admin' || perms.viewHistory ? (histBy.get(t.id) || []) : [],
+    }
+  }))
   return {
-    version: 5.71,
-    currentAccount: safeAccount(account, account.role === 'admin', account.role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : ''),
+    version: 5.74,
+    currentAccount: safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : ''),
     accounts: mappedAccounts,
     tickets: mappedTickets,
     routing: Object.fromEntries((routing || []).map((r: any) => [r.category, { all: !!r.assign_all, accountIds: routingMemberMap.get(r.category) || (r.account_id ? [r.account_id] : []) }])),
     settings: settingsObj,
-    auditLog: auditRows.map((x: any) => ({ id:x.id, at:x.at, actor:x.actor, actorId:x.actor_id, type:x.type, targetId:x.target_id, action:x.action })),
+    auditLog: (audits || []).map((x: any) => ({ id:x.id, at:x.at, actor:x.actor, actorId:x.actor_id, type:x.type, targetId:x.target_id, action:x.action })),
   }
 }
 
@@ -265,14 +342,16 @@ async function createTicket(payload: any, actorAccount: any | null) {
     if (!routeIds.length && route?.account_id) routeIds = [route.account_id]
   }
   const primary = routeIds[0] || null
+  const canContinue = String(payload.canContinue || 'ja')
+  const urgency = canContinue === 'nee' ? 'spoed' : String(payload.urgency || 'normaal')
   const { data: inserted, error } = await db.from('dm_tickets').insert({
     reporter: String(payload.reporter || '').slice(0,160),
     location: String(payload.location || '').slice(0,300),
     category,
-    urgency: String(payload.urgency || 'normaal'),
+    urgency,
     title: String(payload.title || '').slice(0,160),
     description: String(payload.description || '').slice(0,6000),
-    can_continue: String(payload.canContinue || 'ja'),
+    can_continue: canContinue,
     status: 'open',
     assignee: primary,
   }).select('*').single()
@@ -299,28 +378,39 @@ async function createTicket(payload: any, actorAccount: any | null) {
   return { id: ticketNo, dbId: inserted.id, assignee: primary || '', assignees: routeIds, assigneeName: assigneeNames[0] || '', assigneeNames }
 }
 
-async function updateTicket(account: any, payload: any) {
+async function updateTicket(account: any, payload: any, settingsObj?: any) {
+  const settings = settingsObj || await loadSettingsObj()
+  const role = effectiveRole(account,settings)
+  const perms = permissionsFor(role,settings)
   const id = Number(payload.dbId)
   const { data: old } = await db.from('dm_tickets').select('*').eq('id', id).single()
   if (!old) throw new Error('Melding niet gevonden')
-  const allowed: Record<string,string> = {
-    location:'location', category:'category', urgency:'urgency', status:'status', internalNote:'internal_note'
+  const { data: beforeRows } = await db.from('dm_ticket_assignments').select('account_id').eq('ticket_id',id)
+  const beforeIds = (beforeRows || []).map((x:any)=>x.account_id)
+  const visibilityIds = beforeIds.length ? beforeIds : (old.assignee ? [old.assignee] : [])
+  if (!ticketVisibleFor(account,role,perms,old,visibilityIds)) throw new Error('Geen toegang tot deze melding')
+  const allowed: Record<string,{db:string,perm:string,label:string}> = {
+    location:{db:'location',perm:'editLocation',label:'locatie'},
+    category:{db:'category',perm:'editCategory',label:'categorie'},
+    urgency:{db:'urgency',perm:'editUrgency',label:'urgentie'},
+    status:{db:'status',perm:'editStatus',label:'status'},
+    internalNote:{db:'internal_note',perm:'editInternalNote',label:'interne notitie'},
   }
   const patch: any = { updated_at: new Date().toISOString() }
   const changes: string[] = []
-  for (const [clientKey, dbKey] of Object.entries(allowed)) {
+  for (const [clientKey, cfg] of Object.entries(allowed)) {
     if (!(clientKey in payload)) continue
+    if (role !== 'admin' && !perms[cfg.perm]) throw new Error(`Geen recht om ${cfg.label} te wijzigen`)
     const v = payload[clientKey]
-    const before = old[dbKey]
+    const before = old[cfg.db]
     if (String(before ?? '') !== String(v ?? '')) {
-      patch[dbKey] = v
+      patch[cfg.db] = v
       changes.push(`${clientKey}: ${before ?? '-'} -> ${v ?? '-'}`)
     }
   }
   if ('assignee' in payload) {
+    if (role !== 'admin' && !perms.editAssignment) throw new Error('Geen recht om de toewijzing te wijzigen')
     const selected = String(payload.assignee || '')
-    const { data: beforeRows } = await db.from('dm_ticket_assignments').select('account_id').eq('ticket_id',id)
-    const beforeIds = (beforeRows || []).map((x:any)=>x.account_id)
     await db.from('dm_ticket_assignments').delete().eq('ticket_id',id)
     if (selected) {
       const { error: aErr } = await db.from('dm_ticket_assignments').insert({ticket_id:id,account_id:selected})
@@ -340,9 +430,12 @@ async function upsertAccount(admin: any, payload: any) {
   const isNew = !payload.id
   const username = String(payload.username || '').trim()
   if (!username) throw new Error('Inlognaam ontbreekt')
+  const requestedRole = String(payload.role || 'facility')
+  if (!['staff','facility','concierge','admin'].includes(requestedRole)) throw new Error('Ongeldige rol')
+  const dbRole = requestedRole === 'concierge' ? 'facility' : requestedRole
   const base: any = {
     name: String(payload.name || '').trim(), username, username_key: username.toLowerCase(),
-    role: String(payload.role || 'facility'), active: payload.active !== false,
+    role: dbRole, active: payload.active !== false,
     updated_at: new Date().toISOString(),
   }
   if (payload.password !== undefined && String(payload.password) !== '') Object.assign(base, await passwordFields(String(payload.password)))
@@ -350,13 +443,17 @@ async function upsertAccount(admin: any, payload: any) {
     if (!payload.password) throw new Error('Wachtwoord is verplicht bij een nieuw account')
     const { data, error } = await db.from('dm_accounts').insert(base).select('*').single()
     if (error) throw error
-    await audit(admin.name, admin.id, 'account', data.id, `Account aangemaakt: ${data.name} (${data.username}), rol ${data.role}`)
+    await setAccountRoleOverride(data.id, requestedRole)
+    await audit(admin.name, admin.id, 'account', data.id, `Account aangemaakt: ${data.name} (${data.username}), rol ${requestedRole}`)
     return data.id
   }
   const { data: before } = await db.from('dm_accounts').select('*').eq('id', payload.id).single()
+  const settingsBefore = await loadSettingsObj()
+  const beforeRole = before ? effectiveRole(before,settingsBefore) : ''
   const { data, error } = await db.from('dm_accounts').update(base).eq('id', payload.id).select('*').single()
   if (error) throw error
-  await audit(admin.name, admin.id, 'account', data.id, `Account gewijzigd: ${before?.name || ''} / ${before?.username || ''} / ${before?.role || ''} -> ${data.name} / ${data.username} / ${data.role}`)
+  await setAccountRoleOverride(data.id, requestedRole)
+  await audit(admin.name, admin.id, 'account', data.id, `Account gewijzigd: ${before?.name || ''} / ${before?.username || ''} / ${beforeRole || ''} -> ${data.name} / ${data.username} / ${requestedRole}`)
   if (payload.active === false) await db.from('dm_sessions').delete().eq('account_id', payload.id)
   return data.id
 }
@@ -403,10 +500,10 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.71 })
+    if (action === 'health') return json({ ok:true, version:5.75 })
     if (action === 'public_config') {
-      const defaults:any = { reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize'])
+      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize'])
       for (const row of rows || []) defaults[row.key] = row.value
       return json({ ok:true, settings:defaults })
     }
@@ -418,28 +515,38 @@ Deno.serve(async (req) => {
     if (action === 'setup_password') return json({ ok:true, result: await setupPassword(payload) })
     if (action === 'public_create_ticket') return json({ ok:true, ticket: await createTicket(payload, null) })
 
-    const account = await authenticate(req)
-    if (!account) return json({ error:'Sessie verlopen of geen toegang' },401)
+    const rawAccount = await authenticate(req)
+    if (!rawAccount) return json({ error:'Sessie verlopen of geen toegang' },401)
+    const requestSettings = await loadSettingsObj()
+    const account = { ...rawAccount, role:effectiveRole(rawAccount,requestSettings) }
 
     if (action === 'logout') {
       const h=req.headers.get('Authorization')||''; const token=h.startsWith('Bearer ')?h.slice(7).trim():''
       if(token) await db.from('dm_sessions').delete().eq('token_hash',await sha256(token))
       return json({ok:true})
     }
-    if (action === 'state') return json({ ok:true, state: await getState(account) })
+    if (action === 'state') return json({ ok:true, state: await getState(account,requestSettings) })
     if (action === 'create_ticket') {
       const ticket = await createTicket(payload, account)
-      return json({ ok:true, ticket, state: await getState(account) })
+      return json({ ok:true, ticket, state: await getState(account,requestSettings) })
     }
     if (action === 'update_ticket') {
-      if (!['admin','facility'].includes(account.role)) return json({error:'Geen toegang'},403)
-      const result = await updateTicket(account,payload)
+      if (!(account.role === 'admin' || isOperationalRole(account.role))) return json({error:'Geen toegang'},403)
+      const result = await updateTicket(account,payload,requestSettings)
       return json({ok:true,...result,state:await getState(account)})
     }
     if (action === 'delete_ticket') {
-      if (account.role !== 'admin') return json({error:'Geen toegang'},403)
       const id=Number(payload.dbId)
-      const {data:t}=await db.from('dm_tickets').select('title,photo_path,ticket_no').eq('id',id).single()
+      const perms=permissionsFor(account.role,requestSettings)
+      if (account.role !== 'admin' && !perms.deleteTicket) return json({error:'Geen toegang'},403)
+      const {data:t}=await db.from('dm_tickets').select('*').eq('id',id).single()
+      if(!t)return json({error:'Melding niet gevonden'},404)
+      if(account.role!=='admin'){
+        const {data:rows}=await db.from('dm_ticket_assignments').select('account_id').eq('ticket_id',id)
+        const ids=(rows||[]).map((x:any)=>x.account_id)
+        const visibilityIds=ids.length?ids:(t.assignee?[t.assignee]:[])
+        if(!ticketVisibleFor(account,account.role,perms,t,visibilityIds))return json({error:'Geen toegang'},403)
+      }
       if(t?.photo_path) await db.storage.from('ticket-photos').remove([t.photo_path])
       await db.from('dm_tickets').delete().eq('id',id)
       await audit(account.name,account.id,'ticket',t?.ticket_no||String(id),`Melding verwijderd: ${t?.title||''}`)
@@ -490,7 +597,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'set_setting') {
       if(account.role!=='admin')return json({error:'Geen toegang'},403)
-      await db.from('dm_settings').upsert({key:String(payload.key),value:payload.value,updated_at:new Date().toISOString()})
+      await saveSetting(String(payload.key),payload.value)
       await audit(account.name,account.id,'settings',String(payload.key),`${payload.key}: ${JSON.stringify(payload.value)}`)
       return json({ok:true,state:await getState(account)})
     }
