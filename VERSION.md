@@ -1,4 +1,4 @@
-# Dalton Meldpunt v5.3
+# Dalton Meldpunt v5.4
 
 - Facilitair kan per apparaat zelf meldingen en app-badges aan- of uitzetten.
 - Nieuwe centrale tickets geven tijdens actief gebruik van de PWA/browser een lokale melding wanneer meldingen zijn ingeschakeld.
