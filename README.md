@@ -11,3 +11,7 @@ Deze versie voegt meervoudige automatische toewijzing toe. Daarom zijn er drie s
 De bestaande configuratie is al ingevuld voor:
 - GitHub Pages: https://jkor95.github.io/Facilitair/
 - Edge Function: https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function
+
+
+### v5.6.8
+Facilitair kan e-mailmeldingen centraal per account in- of uitschakelen en zelf het e-mailadres beheren. Automatische verzending gebruikt optioneel Resend vanuit de Supabase Edge Function.

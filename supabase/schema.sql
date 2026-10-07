@@ -9,6 +9,7 @@ create table if not exists public.dm_accounts (
   username text not null,
   username_key text not null unique,
   email text not null default '',
+  email_notifications boolean not null default false,
   role text not null check (role in ('admin','facility','staff')),
   active boolean not null default true,
   password_hash text not null,

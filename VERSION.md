@@ -1,10 +1,6 @@
-# Meldpunt VWO v5.6.6
+# Meldpunt VWO v5.6.8
 
-Nieuwe functies:
-- Toewijzen aan toont alleen de naam van medewerkers.
-- Spoedmeldingen staan bovenaan en zijn duidelijk rood gemarkeerd.
-- Facilitair kiest per apparaat badge/notificaties op urgentie én toewijzing (aan mij / niet toegewezen).
-- Meldpagina: Admin kan lettergroottes aanpassen en lege regels/Enters blijven zichtbaar.
-- Automatische toewijzing ondersteunt meerdere medewerkers of iedereen.
-- Auditlog staat onderaan de beheerderspagina.
-- Meervoudige automatische toewijzingen worden centraal in Supabase opgeslagen.
+- Standaard e-mailadres van het Admin-account ingesteld op j.korstanje@dalton-dordrecht.nl.
+- Het adres blijft volledig bewerkbaar via Beheer > Medewerkers & accounts.
+- Nieuwe installaties krijgen hetzelfde standaardadres voor het eerste Admin-account.
+- Browser/PWA-cache bijgewerkt naar v5.6.8.

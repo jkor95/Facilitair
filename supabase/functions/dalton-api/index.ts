@@ -11,6 +11,9 @@ const secretKeys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}')
 const SUPABASE_SECRET_KEY = secretKeys.default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const MASTER_KEY_B64 = Deno.env.get('DALTON_MASTER_KEY') || ''
 const APP_BASE_URL = Deno.env.get('DALTON_APP_URL') || ''
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
+const MELDPUNT_MAIL_FROM = Deno.env.get('MELDPUNT_MAIL_FROM') || ''
+const MELDPUNT_MAIL_REPLY_TO = Deno.env.get('MELDPUNT_MAIL_REPLY_TO') || ''
 
 if (!SUPABASE_SECRET_KEY) throw new Error('Supabase secret key ontbreekt')
 if (!MASTER_KEY_B64) throw new Error('DALTON_MASTER_KEY ontbreekt')
@@ -83,13 +86,55 @@ async function history(ticketId: number, actor: string, actorId: string | null, 
   await audit(actor, actorId, 'ticket', String(ticketId), action)
 }
 
+function mailDeliveryConfigured() {
+  return !!(RESEND_API_KEY && MELDPUNT_MAIL_FROM)
+}
+
+function htmlEscape(value: unknown) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c))
+}
+
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!mailDeliveryConfigured()) return { skipped: true }
+  const body: any = { from: MELDPUNT_MAIL_FROM, to: [to], subject, html }
+  if (MELDPUNT_MAIL_REPLY_TO) body.reply_to = MELDPUNT_MAIL_REPLY_TO
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_API_KEY}` },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    const details = await response.text().catch(() => '')
+    throw new Error(`E-mail verzenden mislukt (${response.status}) ${details}`.trim())
+  }
+  return { skipped: false }
+}
+
+async function sendTicketNotificationEmails(ticket: any) {
+  if (!mailDeliveryConfigured()) return
+  const { data: recipients, error } = await db.from('dm_accounts')
+    .select('id,name,email')
+    .eq('role','facility').eq('active',true).eq('email_notifications',true)
+    .neq('email','')
+  if (error) throw error
+  if (!recipients?.length) return
+  const urgency = String(ticket.urgency || 'normaal').toUpperCase()
+  const subject = `${ticket.urgency === 'spoed' ? '[SPOED] ' : ''}[${ticket.ticketNo}] ${ticket.title}`
+  const appLink = APP_BASE_URL || 'https://jkor95.github.io/Facilitair/'
+  const description = ticket.description ? `<p><b>Toelichting:</b><br>${htmlEscape(ticket.description).replace(/\r?\n/g,'<br>')}</p>` : ''
+  const html = `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#17313a"><h2>Nieuwe facilitaire melding</h2><p><b>${htmlEscape(ticket.ticketNo)}</b></p><p><b>Urgentie:</b> ${htmlEscape(urgency)}<br><b>Locatie:</b> ${htmlEscape(ticket.location)}<br><b>Categorie:</b> ${htmlEscape(ticket.category)}<br><b>Melder:</b> ${htmlEscape(ticket.reporter)}</p><p><b>Melding:</b><br>${htmlEscape(ticket.title)}</p>${description}<p><a href="${htmlEscape(appLink)}">Open Meldpunt VWO</a></p></div>`
+  const results = await Promise.allSettled(recipients.map((r:any)=>sendEmail(String(r.email),subject,html)))
+  const failed = results.filter(x=>x.status==='rejected')
+  if (failed.length) console.error('email notification failures', failed)
+}
+
 async function ensureAdmin() {
   const { data: existing, error } = await db.from('dm_accounts').select('id').limit(1)
   if (error) throw error
   if (existing && existing.length) return
   const p = await passwordFields('Admin')
   const { data: account, error: insErr } = await db.from('dm_accounts').insert({
-    name: 'Jeremy', username: 'Admin', username_key: 'admin', email: '', role: 'admin', active: true, ...p,
+    name: 'Jeremy', username: 'Admin', username_key: 'admin', email: 'j.korstanje@dalton-dordrecht.nl', role: 'admin', active: true, ...p,
   }).select('id,name').single()
   if (insErr) throw insErr
   await audit('Systeem', null, 'account', account.id, 'Eerste hoofdbeheeraccount Admin aangemaakt')
@@ -127,7 +172,7 @@ async function login(username: string, password: string) {
 
 function safeAccount(a: any, includePassword = false, plainPassword = '') {
   const out: any = {
-    id: a.id, name: a.name, username: a.username, email: a.email || '', role: a.role,
+    id: a.id, name: a.name, username: a.username, email: a.email || '', emailNotifications: !!a.email_notifications, role: a.role,
     active: !!a.active, createdAt: a.created_at, updatedAt: a.updated_at,
   }
   if (includePassword) out.password = plainPassword
@@ -205,8 +250,8 @@ async function getState(account: any) {
     completionMailPreparedAt: t.completion_mail_prepared_at,
     history: histBy.get(t.id) || [],
   })))
-  const settingsObj: any = { showAuditToFacility: false, localNotifications: true, reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
-  for (const s of settings || []) settingsObj[s.key] = s.value
+  const settingsObj: any = { showAuditToFacility: false, localNotifications: true, emailDeliveryConfigured: mailDeliveryConfigured(), reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
+  for (const s of settings || []) if (s.key !== 'emailDeliveryConfigured') settingsObj[s.key] = s.value
   let auditRows: any[] = audits || []
   if (account.role === 'facility' && settingsObj.showAuditToFacility) {
     const { data: facilityAudits } = await db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000)
@@ -282,6 +327,11 @@ async function createTicket(payload: any, actorAccount: any | null) {
     assigneeNames = routeIds.map(id=>nameMap.get(id) || 'medewerker')
     await history(inserted.id, 'Systeem', null, `Automatisch toegewezen aan ${assigneeNames.join(', ')}`)
   }
+  try {
+    await sendTicketNotificationEmails({ ticketNo, reporter: inserted.reporter, location: inserted.location, category: inserted.category, urgency: inserted.urgency, title: inserted.title, description: inserted.description })
+  } catch (e) {
+    console.error('ticket email notifications', e)
+  }
   return { id: ticketNo, dbId: inserted.id, assignee: primary || '', assignees: routeIds, assigneeName: assigneeNames[0] || '', assigneeNames }
 }
 
@@ -328,7 +378,7 @@ async function upsertAccount(admin: any, payload: any) {
   if (!username) throw new Error('Inlognaam ontbreekt')
   const base: any = {
     name: String(payload.name || '').trim(), username, username_key: username.toLowerCase(),
-    email: String(payload.email || '').trim(), role: String(payload.role || 'facility'), active: payload.active !== false,
+    email: String(payload.email || '').trim(), email_notifications: String(payload.role || 'facility') === 'facility' ? !!payload.emailNotifications : false, role: String(payload.role || 'facility'), active: payload.active !== false,
     updated_at: new Date().toISOString(),
   }
   if (payload.password !== undefined && String(payload.password) !== '') Object.assign(base, await passwordFields(String(payload.password)))
@@ -353,6 +403,17 @@ async function changeOwnPassword(account: any, payload: any) {
   const p = await passwordFields(String(payload.newPassword || ''))
   await db.from('dm_accounts').update({ ...p, updated_at:new Date().toISOString() }).eq('id', account.id)
   await audit(account.name, account.id, 'account', account.id, 'Eigen wachtwoord gewijzigd')
+}
+
+async function updateOwnEmailPreferences(account: any, payload: any) {
+  if (account.role !== 'facility') throw new Error('Alleen facilitair kan deze instelling gebruiken')
+  const email = String(payload.email || '').trim().slice(0,240)
+  const enabled = !!payload.enabled
+  if (enabled && !email) throw new Error('Vul eerst een e-mailadres in')
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Vul een geldig e-mailadres in')
+  const { error } = await db.from('dm_accounts').update({ email, email_notifications: enabled, updated_at:new Date().toISOString() }).eq('id',account.id)
+  if (error) throw error
+  await audit(account.name, account.id, 'account', account.id, `E-mailmeldingen ${enabled?'aangezet':'uitgezet'}${email?` voor ${email}`:''}`)
 }
 
 async function createInvite(admin: any, payload: any) {
@@ -389,7 +450,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.65 })
+    if (action === 'health') return json({ ok:true, version:5.67 })
     if (action === 'public_config') {
       const defaults:any = { reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize'])
@@ -438,6 +499,10 @@ Deno.serve(async (req) => {
     }
     if (action === 'change_own_password') {
       await changeOwnPassword(account,payload)
+      return json({ok:true,state:await getState(account)})
+    }
+    if (action === 'update_own_email_preferences') {
+      await updateOwnEmailPreferences(account,payload)
       return json({ok:true,state:await getState(account)})
     }
     if (action === 'set_routing') {

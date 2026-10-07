@@ -129,7 +129,6 @@ apiUrl: 'https://JOUW_PROJECT_REF.supabase.co/functions/v1/dalton-api',
 publicUrl: 'https://JOUW-GITHUB-NAAM.github.io/dalton-meldpunt/',
 ```
 
-Pas ook `conciergeEmail` aan naar het echte facilitaire/conciërge-mailadres.
 
 **Niet in GitHub zetten:** databasewachtwoord, Supabase secret key/service role key of `DALTON_MASTER_KEY`.
 
@@ -198,3 +197,24 @@ Controleer eerst of `schema.sql` succesvol is uitgevoerd, de secret `DALTON_MAST
 
 **Foto werkt niet**  
 Controleer of de bucket `ticket-photos` bestaat en private is.
+
+
+## Update v5.6.8 - automatische e-mailmeldingen
+
+1. Voer `supabase/MIGRATIE-v5.6.8.sql` eenmalig uit in **Supabase > SQL Editor**.
+2. Vervang daarna de code van de bestaande Edge Function `smart-function` door `supabase/functions/dalton-api/index.ts` en deploy opnieuw. **Verify JWT blijft uit.**
+3. Voor echte automatische e-mail moet een verzendprovider ingesteld worden. Deze versie gebruikt Resend via de Edge Function. Maak een Resend API-key en verifieer een verzenddomein.
+4. Voeg in **Supabase > Edge Functions > Secrets** toe:
+   - `RESEND_API_KEY` = jouw Resend API-key
+   - `MELDPUNT_MAIL_FROM` = bijvoorbeeld `Meldpunt VWO <meldpunt@jouwdomein.nl>`
+   - optioneel `MELDPUNT_MAIL_REPLY_TO` = antwoordadres
+5. Deploy `smart-function` daarna nogmaals.
+
+Zonder deze twee verplichte mailsecrets blijft het meldpunt volledig werken en worden de persoonlijke e-mailvoorkeuren wel opgeslagen, maar worden er geen automatische e-mails verzonden.
+
+
+## Update v5.6.8 - standaard Admin e-mailadres
+
+1. Voer `supabase/MIGRATIE-v5.6.8.sql` eenmalig uit in **Supabase > SQL Editor**.
+2. Deploy de meegeleverde Edge Function opnieuw naar `smart-function`, zodat ook een toekomstige nieuwe installatie hetzelfde standaardadres gebruikt.
+3. Het e-mailadres kan daarna altijd worden gewijzigd via **Beheer > Medewerkers & accounts > Admin**.

@@ -1,7 +1,6 @@
 window.DALTON_CONFIG = {
   appName: 'Meldpunt VWO',
   schoolName: 'Stedelijk Dalton Lyceum Dordrecht',
-  conciergeEmail: 'conciërge@school.nl',
   defaultAdminName: 'Jeremy',
   // Vul hier na het deployen van de Supabase Edge Function jouw eigen URL in.
   // Voorbeeld: https://abcdefgh.supabase.co/functions/v1/dalton-api
