@@ -35,7 +35,7 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 .audit-section{margin-top:2px}
 @media(max-width:850px){.admin-form-columns{grid-template-columns:1fr}.admin-save-row .btn{width:100%}}
 
-/* v5.7.1 - inklapbare panelen, ticketnummerbeheer en mailafzender */
+/* v5.7.2 - alle beheerpanelen inklapbaar behalve Hoofdbeheer */
 .collapsible-card{padding:0;overflow:hidden}
 .collapsible-card details{width:100%}
 .collapsible-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;font-size:17px;font-weight:800;color:var(--ink)}

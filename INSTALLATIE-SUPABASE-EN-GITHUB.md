@@ -1,40 +1,31 @@
-# Meldpunt VWO v5.7.1 installeren/updaten
+# Meldpunt VWO v5.7.2 installeren/updaten
 
-Deze versie bevat geen e-mailfunctionaliteit. Er zijn dus geen Resend-instellingen, afzenderadressen of ontvangstadressen nodig.
+## Update vanaf v5.7.1: alleen GitHub
 
-## 1. Supabase - eenmalige SQL
+Als v5.7.1 al volledig werkt, hoef je voor v5.7.2 **geen SQL uit te voeren en geen Edge Function te wijzigen**.
 
-Als je v5.6.9 en v5.7.0 nog NIET hebt uitgevoerd, gebruik dan alleen:
+1. Open je GitHub repository `Facilitair`.
+2. Vervang de bestaande websitebestanden door de inhoud van deze ZIP.
+3. Zorg dat `index.html`, `assets/`, `sw.js` en `manifest.webmanifest` direct in de repository-root staan.
+4. Wacht tot GitHub Pages opnieuw is gedeployed.
+5. Test via:
 
-`supabase/MIGRATIE-v5.7.1-EENMALIG.sql`
-
-Open Supabase -> SQL Editor -> New query, plak de volledige inhoud en klik Run.
-Deze ene migratie bevat de noodzakelijke databasewijzigingen voor meervoudige automatische toewijzing, tekstgroottes en dagelijkse ticketnummering.
-
-## 2. Supabase - bestaande Edge Function bijwerken
-
-Ga naar Supabase -> Edge Functions -> `smart-function` -> Edit.
-Vervang de volledige inhoud van `index.ts` door:
-
-`supabase/functions/dalton-api/index.ts`
-
-Klik daarna op Deploy updates. `Verify JWT` blijft UIT.
-
-Er hoeven GEEN mail-secrets zoals `RESEND_API_KEY`, `MELDPUNT_MAIL_FROM` of `MELDPUNT_MAIL_REPLY_TO` ingesteld te worden.
-
-## 3. GitHub
-
-Upload de inhoud van deze map naar de root van repository `Facilitair` en vervang de bestaande bestanden.
-De mapstructuur moet direct bijvoorbeeld `index.html`, `assets/`, `sw.js` en `manifest.webmanifest` bevatten.
+`https://jkor95.github.io/Facilitair/?v=5.7.2`
 
 De bestaande configuratie blijft:
 - Website: https://jkor95.github.io/Facilitair/
 - Edge Function: https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function
 
-## 4. Test
+## Alleen als v5.7.1 nog niet volledig was geinstalleerd
 
-Open na deploy:
+Deze ZIP bevat voor volledigheid nog de bestaande v5.7.1 Supabase-bestanden. Voer dan eerst eenmalig uit:
 
-`https://jkor95.github.io/Facilitair/?v=5.7.1`
+`supabase/MIGRATIE-v5.7.1-EENMALIG.sql`
 
-Controleer daarna Admin, Facilitair, automatische toewijzing en ticketnummering.
+En deploy daarna de meegeleverde:
+
+`supabase/functions/dalton-api/index.ts`
+
+naar je bestaande `smart-function`, met `Verify JWT` UIT.
+
+Voor v5.7.2 zelf zijn er geen nieuwe Supabase-wijzigingen.
