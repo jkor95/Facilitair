@@ -1,84 +1,53 @@
-# Dalton Meldpunt v2.1
+# Dalton Meldpunt v3 - centrale app
 
-Mobiele GitHub Pages/PWA-prototype voor facilitaire meldingen op school.
+Dit is de eerste **centrale** versie van Dalton Meldpunt. De frontend blijft een PWA op GitHub Pages, maar meldingen, accounts, rollen, auditlog, toewijzingen en wachtwoorden staan centraal in een Cloudflare Worker + D1 database. Er wordt geen Supabase gebruikt.
 
-## Nieuw in v2
+## Eerste beheeraccount
 
-- Voor personeel is **Locatie + lokaal/ruimte** samengevoegd tot één vrij invulbaar veld.
-- Bij afronden kan facilitair aanvinken of de melder een afrondingsmail moet krijgen.
-- Beheer heeft een zichtbaar tekst-auditlog met **Van / Tot en met** datumfilter.
-- Auditlog kan rechtstreeks als eenvoudige PDF worden geëxporteerd.
-- Hoofdbeheer kan accounts/medewerkers bekijken en bewerken.
-- Facilitair en hoofdbeheer hebben een eigen inlognaam en persoonlijk wachtwoord.
-- Hoofdbeheer kan een uitnodiging of wachtwoord-resetmail voorbereiden.
-- Automatische toewijzing per categorie blijft instelbaar door hoofdbeheer.
-- Volledige lokale JSON back-up/import blijft beschikbaar.
+Na de eerste database-installatie wordt bij de eerste login automatisch één hoofdbeheeraccount gemaakt:
 
-## Demo-inlog
+- gebruikersnaam: `Admin`
+- wachtwoord: `Admin`
 
-Bij een schone installatie zijn deze testaccounts beschikbaar:
+Je kunt daarna in **Medewerkers & accounts** de naam en gebruikersnaam wijzigen. Het eigen wachtwoord kun je via **Wachtwoord wijzigen** aanpassen.
 
-- Hoofdbeheer: `JKO` / `demo-admin`
-- Facilitair: `CON1` / `demo-facilitair`
-- Facilitair: `FAC1` / `demo-facilitair`
+## Wat werkt centraal
 
-Wijzig deze direct via **Beheer > Medewerkers & accounts** als je met het prototype gaat spelen.
+- personeel dient meldingen in via dezelfde openbare GitHub Pages-link;
+- meldingen verschijnen op andere apparaten bij facilitair en hoofdbeheer;
+- één vrij veld voor locatie / lokaal / ruimte;
+- foto toevoegen;
+- status, interne notitie en toewijzing;
+- automatische toewijzing per categorie;
+- medewerkersaccounts met eigen gebruikersnaam en wachtwoord;
+- hoofdbeheer kan accounts bekijken/bewerken/blokkeren;
+- hoofdbeheer kan wachtwoorden **inzien en aanpassen**;
+- wachtwoorden zijn in de database versleuteld opgeslagen, niet als platte tekst;
+- uitnodigings- en resetlinks vanuit de app;
+- auditlog alleen voor hoofdbeheer, met datumfilter en PDF-export;
+- wijzigingen door hoofdbeheer zijn standaard stil (geen interne notificatie);
+- badge telt open acties wanneer de PWA actief is;
+- browsermeldingen terwijl de PWA geopend/actief is;
+- e-mail naar conciërge en afrondingsmail naar melder zodra e-mail is geconfigureerd.
 
-## Belangrijk: nog steeds een lokaal prototype
+## Belangrijk over wachtwoorden inzien
 
-Deze versie draait volledig in de browser en gebruikt `localStorage`.
+Normaal hoort een beheerder een wachtwoord alleen te kunnen resetten. Op jouw expliciete verzoek is v3 zo gebouwd dat hoofdbeheer het actuele wachtwoord kan teruglezen. Daarom bewaart de backend naast de login-hash ook een AES-GCM-versleutelde kopie. De geheime sleutel staat alleen als Cloudflare-secret en **nooit in GitHub**.
 
-Dat betekent:
-- accounts en meldingen worden nog **niet centraal tussen apparaten gesynchroniseerd**;
-- wachtwoorden worden lokaal gehasht opgeslagen en zijn daarom niet terug te lezen;
-- hoofdbeheer kan wel een nieuw wachtwoord instellen;
-- uitnodigings-/resetlinks demonstreren de gewenste flow, maar maken het account op het apparaat waarop de link wordt geopend;
-- e-mail wordt als mailconcept geopend (`mailto:`), niet zelfstandig door de website verzonden;
-- echte achtergrond-push tussen verschillende telefoons vereist later een backend/pushservice.
+Als die geheime sleutel uitlekt, kunnen opgeslagen wachtwoorden worden ontsleuteld. Gebruik daarom unieke wachtwoorden voor deze app en hergebruik geen Microsoft-/schoolwachtwoorden.
 
-Gebruik deze versie alleen met testgegevens. De leerlingproof/AVG-beveiliging en gedeelde backend komen in een volgende stap.
+## Mappen
 
-## Publiceren op GitHub Pages
+- `index.html`, `assets/`, `manifest.webmanifest`, `sw.js`: GitHub Pages frontend.
+- `backend/`: Cloudflare Worker + D1 database.
+- `docs/`: personeelsposter en uitleg.
 
-1. Maak een repository, bijvoorbeeld `dalton-meldpunt`.
-2. Upload alle bestanden uit deze map naar de root.
-3. GitHub -> **Settings -> Pages**.
-4. Kies **Deploy from a branch**.
-5. Kies `main` en `/root`.
-6. Sla op en kopieer het GitHub Pages-adres.
-7. Open `assets/config.js` en vervang `publicUrl` door het echte adres.
-8. Vervang `conciergeEmail` door het functionele conciërge/facilitair e-mailadres.
+Lees **INSTALLATIE.md** voor de eenmalige installatie.
 
-## Testflow
+## Nog bewust niet leerlingproof
 
-1. Open de startpagina en maak als personeelslid een melding.
-2. Kies **Facilitair / beheer inloggen**.
-3. Log in als `CON1` en behandel/toewijs de melding.
-4. Vul bij de melding een e-mailadres van de melder in als je de afrondingsmail wilt testen.
-5. Vink **Melder e-mailen zodra melding wordt afgerond** aan en zet de status op **Afgerond**.
-6. De standaard mail-app opent met een ingevulde afrondingsmail.
-7. Log uit en log als `JKO` in.
-8. Bekijk het auditlog, kies een datumperiode en exporteer het als PDF.
-9. Beheer accounts, inlognamen, e-mailadressen, rollen en automatische categorie-toewijzing.
+Het openbare meldformulier vereist in deze versie nog geen personeelslogin. Dat is bewust zo gelaten op basis van de huidige afspraak. De centrale backend is wel zo opgezet dat we in een volgende versie personeelsverificatie vóór het meldformulier kunnen toevoegen zonder de meldingen- of accountstructuur opnieuw te bouwen.
 
-## iPhone beginscherm
+## Push bij volledig gesloten app
 
-Open de GitHub Pages-link in Safari -> Deel -> **Zet op beginscherm**.
-
-De badgefunctie gebruikt de Badging API waar iOS/browser dit ondersteunt. Echte achtergrond-push volgt pas bij de centrale versie.
-
-## Smart links / QR-codes
-
-Gewone meldlink:
-
-`https://.../dalton-meldpunt/`
-
-Voor een vooraf ingevulde locatie:
-
-`https://.../dalton-meldpunt/?locatie=Lokaal%20B1.14`
-
-Oudere links met `locatie` + `ruimte` blijven ook werken; de app voegt ze samen tot één locatieveld.
-
-
-## Problemen met de demo-inlog
-Gebruik op het inlogscherm **Demo-inlog herstellen**. Daarna werkt `JKO` / `demo-admin`. Deze herstelactie laat bestaande testmeldingen staan.
+V3 heeft centrale notificaties, badge-updates en browsermeldingen wanneer de PWA actief is. Volledige Web Push wanneer de iPhone-app volledig gesloten is vereist nog een aparte pushconfiguratie (bijvoorbeeld VAPID/een pushdienst). Dat staat los van de centrale database en kan later worden toegevoegd.

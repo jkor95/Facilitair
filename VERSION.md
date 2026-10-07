@@ -1,20 +1,13 @@
-# Dalton Meldpunt v2.1
+# v3.0.0 - 7 oktober 2026
 
-Prototype-update 7 oktober 2026.
-
-Fix v2.1:
-- Demo-inlog voor hoofdbeheer robuuster gemaakt.
-- Knop **Demo-inlog herstellen** toegevoegd op het inlogscherm.
-- Bestaande lokale testdata blijven behouden bij herstel.
-
-Nieuw in v2:
-- Locatie + lokaal/ruimte samengevoegd tot één vrij invulbaar veld.
-- Facilitaire afronding kan optioneel een e-mail aan de melder voorbereiden.
-- Auditlog zichtbaar als tekst in Beheer.
-- Auditlog filterbaar op van/tot-datum en exporteerbaar naar PDF.
-- Medewerkers/accounts volledig inzichtelijk en bewerkbaar voor hoofdbeheer.
-- Eigen lokale inlognaam + persoonlijk wachtwoord voor facilitair en beheer.
-- Uitnodigings- en wachtwoord-resetlinks voorbereid via de app.
-- Automatische categorie-toewijzing blijft beheerbaar door hoofdbeheer.
-
-Let op: dit blijft een lokale GitHub Pages-prototypeversie. Accounts, meldingen en instellingen synchroniseren nog niet tussen apparaten. E-mail wordt als concept geopend via de mail-app en niet zelfstandig verzonden.
+- Prototype-localStorage vervangen door centrale Cloudflare Worker + D1 backend.
+- Geen Supabase.
+- Eerste hoofdbeheerlogin: `Admin` / `Admin`.
+- Hoofdbeheer kan eigen gebruikersnaam en wachtwoord later wijzigen.
+- Centrale accounts, sessies, tickets, routing, auditlog, uitnodigingen en notificaties.
+- Hoofdbeheer kan actuele wachtwoorden inzien en aanpassen.
+- Wachtwoorden worden gehasht voor login en daarnaast AES-GCM versleuteld opgeslagen voor de expliciet gevraagde beheer-inzage.
+- Facilitaire accountuitnodigingen en resetlinks.
+- Echte automatische e-mail ondersteund via optionele Resend-configuratie.
+- Auditlog centraal, Van/Tot-filter, PDF-export.
+- Personeelsformulier blijft voorlopig openbaar; leerlingproof-verificatie volgt later.

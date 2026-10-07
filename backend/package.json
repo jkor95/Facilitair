@@ -1,0 +1,14 @@
+{
+  "name": "dalton-meldpunt-api",
+  "private": true,
+  "version": "3.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply dalton-meldpunt --local",
+    "db:migrate:remote": "wrangler d1 migrations apply dalton-meldpunt --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.148.0"
+  }
+}

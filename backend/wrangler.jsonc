@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dalton-meldpunt-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-17",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dalton-meldpunt",
+      "database_id": "VUL_HIER_JE_D1_DATABASE_ID_IN",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://JOUW-GITHUB-NAAM.github.io",
+    "APP_URL": "https://JOUW-GITHUB-NAAM.github.io/dalton-meldpunt/",
+    "CONCIERGE_EMAIL": "concierge@school.nl",
+    "MAIL_FROM": "Dalton Meldpunt <meldpunt@jouwdomein.nl>"
+  }
+}
