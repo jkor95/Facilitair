@@ -1,3 +1,15 @@
+# Meldpunt VWO v5.6.5 - update
+
+## Bestaande installatie bijwerken vanaf v5.6.4
+
+1. Open Supabase > SQL Editor.
+2. Open `supabase/MIGRATIE-v5.6.5.sql`, kopieer alles, plak dit in de SQL Editor en klik **Run**. Dit maakt de tabellen voor meervoudige toewijzing en neemt bestaande enkelvoudige toewijzingen over.
+3. Ga naar Supabase > Edge Functions > `smart-function` > Edit. Vervang `index.ts` volledig door `supabase/functions/dalton-api/index.ts` uit deze versie en klik **Deploy updates**. Laat **Verify JWT uit**.
+4. Upload daarna de GitHub-bestanden uit deze ZIP naar repository `Facilitair` en vervang de bestaande bestanden.
+5. Test via `https://jkor95.github.io/Facilitair/?v=5.6.5`.
+
+---
+
 # Meldpunt VWO v5 installeren
 
 ## Update vanaf v5.5 naar v5.6

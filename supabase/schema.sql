@@ -60,7 +60,20 @@ create table if not exists public.dm_ticket_history (
 create table if not exists public.dm_routing (
   category text primary key,
   account_id uuid references public.dm_accounts(id) on delete set null,
+  assign_all boolean not null default false,
   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.dm_routing_members (
+  category text not null references public.dm_routing(category) on delete cascade,
+  account_id uuid not null references public.dm_accounts(id) on delete cascade,
+  primary key(category,account_id)
+);
+
+create table if not exists public.dm_ticket_assignments (
+  ticket_id bigint not null references public.dm_tickets(id) on delete cascade,
+  account_id uuid not null references public.dm_accounts(id) on delete cascade,
+  primary key(ticket_id,account_id)
 );
 
 create table if not exists public.dm_settings (
@@ -98,7 +111,11 @@ values
   ('reportHeroTitle','"Facilitaire melding"'::jsonb),
   ('reportHeroIntro','"Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair."'::jsonb),
   ('reportHeroLocation','"Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}."'::jsonb),
-  ('reportHeroEmergency','"Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op."'::jsonb)
+  ('reportHeroEmergency','"Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op."'::jsonb),
+  ('reportHeroTitleSize','30'::jsonb),
+  ('reportHeroIntroSize','14'::jsonb),
+  ('reportHeroLocationSize','16'::jsonb),
+  ('reportHeroEmergencySize','12'::jsonb)
 on conflict (key) do nothing;
 
 -- Deze tabellen worden NIET rechtstreeks vanuit GitHub Pages benaderd.
@@ -108,6 +125,8 @@ alter table public.dm_sessions enable row level security;
 alter table public.dm_tickets enable row level security;
 alter table public.dm_ticket_history enable row level security;
 alter table public.dm_routing enable row level security;
+alter table public.dm_routing_members enable row level security;
+alter table public.dm_ticket_assignments enable row level security;
 alter table public.dm_settings enable row level security;
 alter table public.dm_audit_logs enable row level security;
 alter table public.dm_invites enable row level security;
@@ -117,6 +136,8 @@ revoke all on table public.dm_sessions from anon, authenticated;
 revoke all on table public.dm_tickets from anon, authenticated;
 revoke all on table public.dm_ticket_history from anon, authenticated;
 revoke all on table public.dm_routing from anon, authenticated;
+revoke all on table public.dm_routing_members from anon, authenticated;
+revoke all on table public.dm_ticket_assignments from anon, authenticated;
 revoke all on table public.dm_settings from anon, authenticated;
 revoke all on table public.dm_audit_logs from anon, authenticated;
 revoke all on table public.dm_invites from anon, authenticated;

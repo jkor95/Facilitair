@@ -21,3 +21,6 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 @media(max-width:850px){.logo{width:102px;height:58px;flex-basis:102px}.brand{gap:10px}.brand h1{font-size:20px}}
 
 .notification-urgencies{display:grid;gap:7px}.notification-urgencies>div{margin-bottom:2px}.check-row{display:flex;align-items:center;gap:8px;font-weight:600;margin:0}.check-row input{width:auto;margin:0}
+
+/* v5.6.5 */
+.hero-copy{white-space:normal;line-height:1.55}.spoed-ticket{border-color:#e5484d!important;border-left:6px solid #b42318!important;background:#fff5f5!important}.spoed-ticket .ticket-title{color:#b42318}.urgent-heading{color:#b42318}.routing-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:#fafcfc}.routing-people{display:grid;gap:5px;margin:7px 0 9px;padding-left:8px}.routing-card .label-top{margin-bottom:6px}
