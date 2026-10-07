@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.6.5
+# Meldpunt VWO v5.6.6
 
 Nieuwe functies:
 - Toewijzen aan toont alleen de naam van medewerkers.

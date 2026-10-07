@@ -1,10 +1,10 @@
-# Meldpunt VWO v5.6.5
+# Meldpunt VWO v5.6.6
 
 GitHub Pages/PWA met Supabase als centrale synchronisatie. Gebruikers loggen uitsluitend in via Meldpunt VWO; Supabase is niet zichtbaar voor personeel.
 
 ## Update vanaf v5.6.4
 Deze versie voegt meervoudige automatische toewijzing toe. Daarom zijn er drie stappen:
-1. Voer `supabase/MIGRATIE-v5.6.5.sql` één keer uit in Supabase > SQL Editor.
+1. Voer `supabase/MIGRATIE-v5.6.6.sql` één keer uit in Supabase > SQL Editor.
 2. Vervang daarna de code van Edge Function `smart-function` door `supabase/functions/dalton-api/index.ts` en klik op Deploy updates. Verify JWT blijft UIT.
 3. Upload daarna alle GitHub-bestanden uit deze map en vervang de bestaande bestanden.
 
