@@ -1,11 +1,10 @@
-# Meldpunt VWO v5.7.2
+# Meldpunt VWO v5.7.3
 
 ## Wijzigingen
-- Op de beheerderspagina zijn alle witte beheerblokken inklapbaar/uitklapbaar.
-- Alleen **Hoofdbeheer** blijft altijd zichtbaar en kan niet worden ingeklapt.
-- Inklapbaar: Meldingen, Automatische toewijzing, Medewerkers & accounts, Algemene instellingen, Ticketnummering, Cloudstatus, Meldpagina aanpassen en Auditlog.
-- De open/dicht-stand wordt per apparaat onthouden.
-- Geen database- of Edge Function-wijziging ten opzichte van v5.7.1.
-
-## Update
-Als v5.7.1 al volledig is geinstalleerd: alleen de GitHub-bestanden vervangen.
+- Nieuwe inklapbare beheersectie **Categorieën**.
+- Categorieën toevoegen, verwijderen en sorteren.
+- De centrale categorievolgorde wordt direct gebruikt bij **Melding maken**.
+- **Automatische toewijzing** gebruikt dezelfde centrale categorieën en volgorde.
+- Bestaande meldingen behouden een verwijderde categorie als historische waarde; bij bewerken staat deze als **vervallen**.
+- Geen nieuwe databasekolommen of SQL-migratie nodig.
+- Wel één update van de bestaande Supabase Edge Function nodig voor `public_config`.
