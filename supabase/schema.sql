@@ -1,4 +1,4 @@
--- Dalton Meldpunt v5 - centrale Supabase-opslag zonder Supabase Auth.
+-- Meldpunt VWO v5 - centrale Supabase-opslag zonder Supabase Auth.
 -- Voer dit bestand EEN KEER uit in Supabase > SQL Editor.
 
 create extension if not exists pgcrypto;
@@ -94,7 +94,11 @@ values
   ('showAuditToFacility','false'::jsonb),
   ('localNotifications','true'::jsonb),
   ('reportLocationExamples','["003","105","225","Personeelswerkkamer","Mediatheek","Docentenkamer"]'::jsonb),
-  ('reportTitleExamples','["Docking werkt niet","Lamp kapot","Stoel defect","Deurklink zit los","Stopcontact werkt niet"]'::jsonb)
+  ('reportTitleExamples','["Docking werkt niet","Lamp kapot","Stoel defect","Deurklink zit los","Stopcontact werkt niet"]'::jsonb),
+  ('reportHeroTitle','"Facilitaire melding"'::jsonb),
+  ('reportHeroIntro','"Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair."'::jsonb),
+  ('reportHeroLocation','"Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}."'::jsonb),
+  ('reportHeroEmergency','"Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op."'::jsonb)
 on conflict (key) do nothing;
 
 -- Deze tabellen worden NIET rechtstreeks vanuit GitHub Pages benaderd.

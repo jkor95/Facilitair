@@ -1,5 +1,5 @@
 window.DALTON_CONFIG = {
-  appName: 'Dalton Meldpunt',
+  appName: 'Meldpunt VWO',
   schoolName: 'Stedelijk Dalton Lyceum Dordrecht',
   conciergeEmail: 'conciërge@school.nl',
   defaultAdminName: 'Jeremy',

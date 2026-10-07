@@ -1,11 +1,19 @@
-# Dalton Meldpunt v5 installeren
+# Meldpunt VWO v5 installeren
+
+## Update vanaf v5.5 naar v5.6
+
+1. Vervang de GitHub-bestanden door deze v5.6-bestanden. `assets/config.js` bevat jouw bestaande live Function-URL en GitHub Pages-link al.
+2. Open in Supabase **Edge Functions** jouw bestaande function `smart-function`.
+3. Vervang de volledige inhoud van `index.ts` door `supabase/functions/dalton-api/index.ts` uit deze ZIP.
+4. Klik **Deploy updates**. Laat **Verify JWT uit** staan, zoals bij de bestaande koppeling.
+5. Daarna kun je als Admin onder **Meldpagina aanpassen** ook de vier teksten van het groene informatievlak wijzigen.
 
 Deze versie gebruikt:
 
 - **GitHub Pages** voor de zichtbare PWA/webapp;
 - **Supabase Database + Storage + 1 Edge Function** als centrale synchronisatielaag;
 - **geen Supabase Auth** voor personeel, facilitair of beheer;
-- de gebruikers loggen uitsluitend in via het eigen Dalton Meldpunt-scherm.
+- de gebruikers loggen uitsluitend in via het eigen Meldpunt VWO-scherm.
 
 ## Deel A - Supabase
 
@@ -55,7 +63,7 @@ Supabase levert zelf de server-side projectvariabelen `SUPABASE_URL` en de secre
 3. Maak de functie met exact de naam `dalton-api`.
 4. Gebruik de inhoud van `supabase/functions/dalton-api/index.ts` als functiecode. Je kunt ook `dalton-api-dashboard.zip` uit deze map gebruiken als jouw dashboard upload van een function-zip ondersteunt.
 5. Deploy de functie.
-6. Zet voor deze functie de ingebouwde **JWT verification / Verify JWT uit**. Dalton Meldpunt gebruikt bewust zijn eigen sessietokens. De functie controleert die zelf.
+6. Zet voor deze functie de ingebouwde **JWT verification / Verify JWT uit**. Meldpunt VWO gebruikt bewust zijn eigen sessietokens. De functie controleert die zelf.
 
 Als jouw dashboard die instelling niet toont, gebruik dan de Supabase CLI-route hieronder. Het meegeleverde `supabase/config.toml` bevat al:
 

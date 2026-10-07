@@ -1,6 +1,10 @@
-# Dalton Meldpunt v5 - GitHub + Supabase synchronisatie
+# Meldpunt VWO v5.6 - GitHub + Supabase synchronisatie
 
-Dit is de centrale multi-device versie van Dalton Meldpunt.
+Dit is de centrale multi-device versie van Meldpunt VWO.
+
+## v5.6 belangrijk
+
+Na upload van deze GitHub-bestanden moet ook de bijgewerkte Edge Function uit `supabase/functions/dalton-api/index.ts` (of `dalton-api-dashboard.zip`) opnieuw in jouw bestaande Supabase Function worden geplakt en gedeployed. Dit is nodig voor de centraal beheerbare tekst van het groene meldblok.
 
 ## Architectuur
 
@@ -10,7 +14,7 @@ Dit is de centrale multi-device versie van Dalton Meldpunt.
 - Supabase Edge Function `dalton-api`: eigen Dalton-login en alle databasehandelingen
 - Supabase Auth: **niet gebruikt**
 
-Personeel, facilitair en hoofdbeheer loggen alleen in via Dalton Meldpunt.
+Personeel, facilitair en hoofdbeheer loggen alleen in via Meldpunt VWO.
 
 ## Eerste beheeraccount
 

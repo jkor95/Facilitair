@@ -1,7 +1,7 @@
-const CACHE = 'dalton-meldpunt-v5.5';
+const CACHE = 'meldpunt-vwo-v5.6';
 const ASSETS = [
   './','./index.html','./manifest.webmanifest','./assets/styles.css','./assets/config.js','./assets/app.js',
-  './assets/icon-192.png','./assets/icon-512.png'
+  './assets/icon-192.png','./assets/icon-512.png','./assets/logo-meldpunt-vwo.png'
 ];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(
