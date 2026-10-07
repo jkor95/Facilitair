@@ -1,6 +1,11 @@
-# Dalton Meldpunt v2
+# Dalton Meldpunt v2.1
 
 Prototype-update 7 oktober 2026.
+
+Fix v2.1:
+- Demo-inlog voor hoofdbeheer robuuster gemaakt.
+- Knop **Demo-inlog herstellen** toegevoegd op het inlogscherm.
+- Bestaande lokale testdata blijven behouden bij herstel.
 
 Nieuw in v2:
 - Locatie + lokaal/ruimte samengevoegd tot één vrij invulbaar veld.

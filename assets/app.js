@@ -116,10 +116,42 @@
   async function ensureDemoPasswords(){
     const defaults = {JKO:'demo-admin',CON1:'demo-facilitair',FAC1:'demo-facilitair'};
     let changed=false;
-    for (const a of db.accounts) {
-      if (!a.passwordHash && defaults[a.username]) { await setPassword(a, defaults[a.username]); a.mustSetPassword=true; changed=true; }
+    for (const [username,password] of Object.entries(defaults)) {
+      let a = db.accounts.find(x=>String(x.username||'').toUpperCase()===username);
+      if (!a && username==='JKO') {
+        a = {...defaultDB().accounts[0],createdAt:now(),updatedAt:now()};
+        db.accounts.unshift(a);
+        changed=true;
+      }
+      if (a && !a.passwordHash) { await setPassword(a,password); a.mustSetPassword=true; changed=true; }
     }
     if (changed) save();
+  }
+
+  async function repairDemoLogin(){
+    let admin = db.accounts.find(x=>String(x.username||'').toUpperCase()==='JKO');
+    if (!admin) {
+      admin = {...defaultDB().accounts[0],createdAt:now(),updatedAt:now()};
+      db.accounts.unshift(admin);
+    }
+    admin.username='JKO';
+    admin.role='admin';
+    admin.active=true;
+    await setPassword(admin,'demo-admin');
+    admin.mustSetPassword=true;
+
+    const demoFacilities = [
+      ['CON1','Conciërge 1','demo-facilitair','u-fac1'],
+      ['FAC1','Facilitair 1','demo-facilitair','u-fac2']
+    ];
+    for (const [username,name,password,id] of demoFacilities) {
+      let a=db.accounts.find(x=>String(x.username||'').toUpperCase()===username);
+      if(!a){a={id,name,username,email:'',role:'facility',active:true,salt:'',passwordHash:'',mustSetPassword:true,createdAt:now(),updatedAt:now()};db.accounts.push(a);}
+      a.username=username;a.role='facility';a.active=true;
+      await setPassword(a,password);a.mustSetPassword=true;
+    }
+    addAudit('Systeem','account',admin.id,'Demo-inlog hoofdbeheer hersteld','system');
+    save();
   }
 
   function setSession(account){
@@ -157,8 +189,12 @@
   }
 
   function showLogin(message=''){
-    shell(`<div class="auth-wrap"><section class="card auth-card"><h2>Inloggen</h2><p class="sub">Voor facilitair medewerkers en hoofdbeheer.</p>${message?`<div class="success">${esc(message)}</div>`:''}<form id="loginForm"><label class="req">Inlognaam</label><input name="username" autocomplete="username" required placeholder="Bijv. JKO"><label class="req">Persoonlijk wachtwoord</label><input name="password" type="password" autocomplete="current-password" required><div id="loginError"></div><div class="actions"><button class="btn primary" type="submit">Inloggen</button><button class="btn ghost" type="button" id="backPublic">Terug naar melden</button></div></form><div class="divider"></div><p class="tiny muted"><b>Demo:</b> JKO / demo-admin &nbsp; of &nbsp; CON1 / demo-facilitair. Wijzig dit via Beheer voordat je verder test.</p></section></div>`,{notice:true});
+    shell(`<div class="auth-wrap"><section class="card auth-card"><h2>Inloggen</h2><p class="sub">Voor facilitair medewerkers en hoofdbeheer.</p>${message?`<div class="success">${esc(message)}</div>`:''}<form id="loginForm"><label class="req">Inlognaam</label><input name="username" autocomplete="username" required placeholder="Bijv. JKO"><label class="req">Persoonlijk wachtwoord</label><input name="password" type="password" autocomplete="current-password" required><div id="loginError"></div><div class="actions"><button class="btn primary" type="submit">Inloggen</button><button class="btn ghost" type="button" id="backPublic">Terug naar melden</button></div></form><div class="divider"></div><p class="tiny muted"><b>Demo:</b> JKO / demo-admin &nbsp; of &nbsp; CON1 / demo-facilitair.</p><button class="btn ghost small" type="button" id="repairDemo">Demo-inlog herstellen</button><p class="tiny muted">Gebruik deze knop als een oudere lokale testversie de demo-inlog heeft overschreven. Meldingen en overige testdata blijven behouden.</p></section></div>`,{notice:true});
     $('#backPublic').onclick=()=>{publicView=true;render();};
+    $('#repairDemo').onclick=async()=>{
+      await repairDemoLogin();
+      showLogin('Demo-inlog hersteld. Gebruik JKO / demo-admin.');
+    };
     $('#loginForm').onsubmit=async e=>{
       e.preventDefault();
       const f=new FormData(e.target); const username=String(f.get('username')).trim().toUpperCase(); const password=String(f.get('password'));

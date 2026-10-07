@@ -1,4 +1,4 @@
-# Dalton Meldpunt v2
+# Dalton Meldpunt v2.1
 
 Mobiele GitHub Pages/PWA-prototype voor facilitaire meldingen op school.
 
@@ -78,3 +78,7 @@ Voor een vooraf ingevulde locatie:
 `https://.../dalton-meldpunt/?locatie=Lokaal%20B1.14`
 
 Oudere links met `locatie` + `ruimte` blijven ook werken; de app voegt ze samen tot één locatieveld.
+
+
+## Problemen met de demo-inlog
+Gebruik op het inlogscherm **Demo-inlog herstellen**. Daarna werkt `JKO` / `demo-admin`. Deze herstelactie laat bestaande testmeldingen staan.
