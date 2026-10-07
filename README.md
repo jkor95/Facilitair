@@ -28,6 +28,6 @@ Plaats nooit een Supabase secret/service-role key of `DALTON_MASTER_KEY` in GitH
 Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md` voor de volledige installatie.
 
 
-## Nieuw in v5.1
+## Nieuw in v5.2
 
 Hoofdbeheer kan onder **Beheer > Meldformulier aanpassen** zelf voorbeeldlocaties en voorbeeldmeldingen beheren. Deze instellingen worden centraal in Supabase opgeslagen en door de openbare meldpagina opgehaald. De gele centrale informatiebalk is verwijderd.
