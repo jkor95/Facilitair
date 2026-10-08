@@ -1,15 +1,24 @@
-MELDPUNT VWO v5.7.9
+MELDPUNT VWO v5.8.0
 
-HOTFIX OP v5.7.8
+UPDATE VANAF v5.7.9
 
-Als je v5.7.8 al hebt geinstalleerd (SQL uitgevoerd en smart-function bijgewerkt):
-1. Upload/vervang alleen de websitebestanden in GitHub Pages.
-2. Je hoeft GEEN SQL opnieuw uit te voeren.
-3. Je hoeft de smart-function NIET opnieuw te deployen.
+1. SUPABASE - SMART-FUNCTION
+   Open je bestaande Edge Function `smart-function`.
+   Vervang de volledige index.ts door:
+   supabase/functions/dalton-api/index.ts
+   Deploy de function opnieuw.
 
-Als je rechtstreeks van v5.7.7 of ouder naar v5.7.9 gaat, voer dan eerst de twee backendstappen van v5.7.8 uit:
-- supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x
-- supabase/functions/dalton-api/index.ts naar de bestaande smart-function en deploy
-Daarna upload je de websitebestanden naar GitHub Pages.
+2. GEEN SQL
+   Voor v5.8.0 hoef je geen nieuwe SQL uit te voeren.
+   Heb je v5.7.8 nog nooit geinstalleerd, voer dan eerst supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
 
-Officieel adres: https://meldpuntvwo.nl/
+3. GITHUB
+   Upload/vervang de websitebestanden in de root van repository Facilitair.
+   Laat CNAME staan; deze bevat meldpuntvwo.nl.
+
+4. TEST
+   Open https://meldpuntvwo.nl/
+   Ga als hoofdbeheerder naar Meldpagina aanpassen -> Filter & sortering actuele storingen.
+   Sla de gewenste filters/sortering op en controleer daarna de openbare meldpagina.
+
+Nieuw: actuele storingen is inklapbaar en kan centraal worden gefilterd/gesorteerd.

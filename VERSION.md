@@ -1,7 +1,15 @@
-# Meldpunt VWO v5.7.9
+# Meldpunt VWO v5.8.0
 
-Frontend-hotfix voor v5.7.8. De openbare meldpagina kon bij het laden stoppen met de fout `publicOutages` omdat de lokale lijst voor het storingsoverzicht niet was geinitialiseerd. Dit is hersteld.
+Nieuwe beheeropties voor het openbare storingsoverzicht op de melderspagina.
 
-De functionaliteit uit v5.7.8 blijft ongewijzigd: optioneel e-mailadres voor terugkoppeling, mailto-knop voor Facilitair/Conciërge en een door Hoofdbeheer in- of uitschakelbaar openbaar storingsoverzicht.
+## Nieuw
+- Hoofdbeheer kan bepalen welke categorieen in Actuele storingen zichtbaar zijn.
+- Hoofdbeheer kan filteren op status: Open, In behandeling en Wacht / gepland.
+- Sortering is instelbaar: categorieen bij elkaar, nieuwste eerst, oudste eerst of urgentie.
+- Standaard staat de sortering op **Categorieen bij elkaar**; binnen een categorie staan de nieuwste meldingen bovenaan.
+- Actuele storingen is op de melderspagina inklapbaar. De open/dicht-stand wordt op het apparaat onthouden.
 
-Backend/API-versie blijft 5.78. Geen nieuwe SQL-migratie en geen nieuwe smart-function nodig wanneer v5.7.8 al volledig is geinstalleerd.
+## Installatie vanaf v5.7.9
+Geen SQL-migratie nodig. Werk de bestaande smart-function bij met `supabase/functions/dalton-api/index.ts` en vervang daarna de GitHub-bestanden.
+
+Backend/API-versie: 5.80. Frontend/PWA-cache: 5.8.0.

@@ -70,3 +70,14 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 .urgent-notice{margin-top:10px;padding:12px 14px;border:2px solid #b42318;border-radius:10px;background:#fff1f0;color:#7a160f;line-height:1.45}.urgent-notice b{color:#b42318}
 
 .login-help{margin-top:14px;margin-bottom:0}
+
+
+/* v5.8.0 - openbaar storingsoverzicht */
+.public-outage-intro{margin-top:0}
+.public-outage-groups{display:grid;gap:18px}
+.public-outage-group{min-width:0}
+.public-outage-group h3{margin:0 0 9px;font-size:15px;color:var(--ink);padding-bottom:7px;border-bottom:1px solid var(--line)}
+.public-outage-admin{display:grid;gap:10px}
+.outage-filter-checks{display:grid;gap:7px;padding-top:5px}
+.outage-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:6px}
+@media(max-width:650px){.outage-category-grid{grid-template-columns:1fr}.public-outages summary{font-size:16px}}

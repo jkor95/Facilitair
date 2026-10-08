@@ -28,6 +28,9 @@ const DEFAULT_SETTINGS:any = {
   showAuditToFacility:false,
   localNotifications:true,
   publicOutageOverview:true,
+  publicOutageCategories:null,
+  publicOutageStatuses:null,
+  publicOutageSort:'category',
   rolePermissions: DEFAULT_ROLE_PERMISSIONS,
   accountRoleOverrides:{},
   categories:['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'],
@@ -505,26 +508,43 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.78 })
+    if (action === 'health') return json({ ok:true, version:5.80 })
     if (action === 'public_config') {
-      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview'])
+      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category' }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort'])
       for (const row of rows || []) defaults[row.key] = row.value
       return json({ ok:true, settings:defaults })
     }
     if (action === 'public_outages') {
       const settings = await loadSettingsObj()
       if (settings.publicOutageOverview === false) return json({ ok:true, enabled:false, items:[] })
+      const allCategories = Array.isArray(settings.categories) ? settings.categories.filter((x:any)=>typeof x==='string'&&x.trim()) : []
+      const configuredCategories = Array.isArray(settings.publicOutageCategories) ? settings.publicOutageCategories.filter((x:any)=>typeof x==='string') : null
+      const visibleCategories = configuredCategories === null ? allCategories : configuredCategories
+      const defaultStatuses = ['open','progress','wait']
+      const configuredStatuses = Array.isArray(settings.publicOutageStatuses) ? settings.publicOutageStatuses.filter((x:any)=>defaultStatuses.includes(x)) : null
+      const visibleStatuses = configuredStatuses === null ? defaultStatuses : configuredStatuses
+      if (!visibleCategories.length || !visibleStatuses.length) return json({ ok:true, enabled:true, items:[] })
       const { data: rows, error } = await db.from('dm_tickets')
         .select('ticket_no,created_at,location,category,urgency,title,status')
-        .neq('status','done')
+        .in('status',visibleStatuses)
+        .in('category',visibleCategories)
         .order('created_at',{ascending:false})
-        .limit(100)
+        .limit(250)
       if (error) throw error
       const items = (rows || []).map((t:any)=>({
         id:t.ticket_no || '', createdAt:t.created_at, location:t.location, category:t.category, urgency:t.urgency, title:t.title, status:t.status
       }))
-      return json({ ok:true, enabled:true, items })
+      const sortMode = ['category','newest','oldest','urgency'].includes(settings.publicOutageSort) ? settings.publicOutageSort : 'category'
+      const catOrder = new Map<string,number>(allCategories.map((cat:any,i:number)=>[String(cat),i]))
+      const urgencyRank:any = { spoed:0, hoog:1, normaal:2, laag:3 }
+      items.sort((a:any,b:any)=>{
+        if (sortMode === 'category') return (catOrder.get(a.category) ?? 999)-(catOrder.get(b.category) ?? 999) || new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()
+        if (sortMode === 'oldest') return new Date(a.createdAt).getTime()-new Date(b.createdAt).getTime()
+        if (sortMode === 'urgency') return (urgencyRank[a.urgency] ?? 9)-(urgencyRank[b.urgency] ?? 9) || new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()
+        return new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()
+      })
+      return json({ ok:true, enabled:true, items:items.slice(0,100) })
     }
     if (action === 'login') {
       const result = await login(payload.username, payload.password)

@@ -1,15 +1,11 @@
-# Meldpunt VWO v5.7.9
+# Meldpunt VWO v5.8.0
 
-Officieel adres: **https://meldpuntvwo.nl/**
+Meldpunt VWO voor Stedelijk Dalton Lyceum Dordrecht. Publieke meldpagina op `https://meldpuntvwo.nl/` met een eigen beheeromgeving voor Facilitair, Conciërge en Hoofdbeheer.
 
-## Nieuw in v5.7.8
+## Nieuw in v5.8.0
+Hoofdbeheer kan het openbare onderdeel **Actuele storingen** filteren op categorie en status en de sortering kiezen. De standaard sortering groepeert meldingen per categorie. Op de melderspagina is het overzicht nu inklapbaar en de keuze open/dicht wordt lokaal onthouden.
 
-- Melder kan optioneel een e-mailadres invullen voor terugkoppeling.
-- Facilitair en conciërges zien dit adres alleen wanneer hun rol meldergegevens mag bekijken.
-- In een melding staat dan de knop **Terugkoppeling mailen**. Deze opent het eigen mailprogramma van de medewerker met het adres van de melder, een ingevuld onderwerp en een concepttekst ondertekend met de naam van de ingelogde medewerker. De app verstuurt zelf geen e-mail en gebruikt geen algemeen afzenderadres.
-- De openbare meldpagina kan een **Actuele storingen**-overzicht tonen met alleen veilige informatie: meldingsnummer, titel, locatie, categorie, urgentie, status en tijdstip. Naam, e-mailadres, foto, toelichting, interne notities en toewijzingen worden niet openbaar getoond.
-- Hoofdbeheer kan het storingsoverzicht aan/uit zetten via **Meldpagina aanpassen**.
+## Update vanaf v5.7.9
+Er is geen nieuwe database-migratie. Vervang wel de bestaande Supabase `smart-function` door `supabase/functions/dalton-api/index.ts` en upload vervolgens de nieuwe GitHub-bestanden.
 
-## Update vereist
-
-Deze versie bevat een kleine database-uitbreiding en een bijgewerkte Edge Function. Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md`.
+Zie `START-HIER.txt` voor de korte stappen.
