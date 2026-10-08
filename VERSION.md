@@ -1,12 +1,11 @@
-# Meldpunt VWO v5.7.6
+# Meldpunt VWO v5.7.7
 
 ## Wijzigingen
-- Inlogpagina vereenvoudigd en neutraler gemaakt.
-- Voorbeeldtekst bij inlognaam verwijderd.
-- Eerste-hoofdbeheer tekst onder het inlogformulier verwijderd.
-- Zichtbare verwijzingen naar technische platformnamen uit de app verwijderd.
-- Wachtwoordhulp toegevoegd: vraag een resetlink bij de beheerder.
-- Cloudstatus hernoemd naar Systeemstatus.
+- Officieel domein ingesteld op `https://meldpuntvwo.nl/`.
+- GitHub Pages `CNAME` toegevoegd.
+- PWA start-URL/scope geschikt gemaakt voor het eigen hoofddomein.
+- Reset- en uitnodigingslinks gebruiken het eigen domein.
+- QR-code, poster en personeelsuitleg bijgewerkt naar het eigen domein.
 
 ## Installatie
-Deze versie is alleen een frontend-update. Er is geen SQL-migratie en geen wijziging van `smart-function` nodig.
+Alleen GitHub/frontend bijwerken. Geen SQL-migratie en geen wijziging van `smart-function` nodig.

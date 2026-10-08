@@ -11,11 +11,11 @@ Waarvoor gebruik je het meldpunt?
 
 Hoe maak je een melding?
 1. Scan de QR-code of open de meldlink.
-3. Vul bij 'Locatie / lokaal / ruimte' zelf duidelijk in waar de melding is, bijvoorbeeld '003', '105', '225' of 'Personeelswerkkamer'.
-4. Kies de juiste categorie en urgentie.
-5. Beschrijf kort wat er aan de hand is.
-6. Voeg indien handig een foto toe.
-7. Verstuur de melding.
+2. Vul bij 'Locatie / lokaal / ruimte' zelf duidelijk in waar de melding is, bijvoorbeeld '003', '105', '225' of 'Personeelswerkkamer'.
+3. Kies de juiste categorie en urgentie.
+4. Beschrijf kort wat er aan de hand is.
+5. Voeg indien handig een foto toe.
+6. Verstuur de melding.
 
 Je ontvangt direct een meldingsnummer. Facilitair kan de melding daarna behandelen en intern toewijzen.
 
@@ -23,4 +23,4 @@ Je ontvangt direct een meldingsnummer. Facilitair kan de melding daarna behandel
 Gebruik 'Spoed' alleen als snelle actie echt noodzakelijk is. Bij direct gevaar of een noodsituatie volg je altijd de geldende interne noodprocedure en neem je direct contact op met de daarvoor aangewezen collega.
 
 Meldlink:
-[VOEG HIER DE GITHUB PAGES-LINK TOE]
+https://meldpuntvwo.nl/

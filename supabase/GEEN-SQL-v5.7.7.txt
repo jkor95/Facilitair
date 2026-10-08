@@ -1,0 +1,1 @@
+Meldpunt VWO v5.7.7: geen SQL-migratie nodig. Geen wijziging aan smart-function nodig. Deze update is alleen website/GitHub en zet meldpuntvwo.nl als officieel domein.

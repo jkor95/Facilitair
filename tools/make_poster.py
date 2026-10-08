@@ -8,10 +8,10 @@ from reportlab.lib.utils import ImageReader
 from pathlib import Path
 import qrcode
 
-ROOT=Path('/mnt/data/dalton-meldpunt-v5.6-supabase')
+ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'docs'/'Meldpunt-VWO-personeelsposter-A4.pdf'
 QR=ROOT/'docs'/'_qr.png'
-qrcode.make('https://jkor95.github.io/Facilitair/').save(QR)
+qrcode.make('https://meldpuntvwo.nl/').save(QR)
 W,H=A4
 font='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'; bold='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 pdfmetrics.registerFont(TTFont('DV',font)); pdfmetrics.registerFont(TTFont('DVB',bold))
@@ -22,10 +22,11 @@ c.setFillColor(bg); c.rect(0,0,W,H,fill=1,stroke=0)
 c.setFillColor(white); c.setStrokeColor(line); c.roundRect(14*mm,H-66*mm,W-28*mm,52*mm,7*mm,fill=1,stroke=1)
 logo=ImageReader(str(ROOT/'assets'/'logo-meldpunt-vwo.png'))
 c.drawImage(logo,21*mm,H-60*mm,width=62*mm,height=40*mm,preserveAspectRatio=True,anchor='sw',mask='auto')
-c.setFillColor(brand); c.setFont('DVB',21); c.drawString(91*mm,H-35*mm,'Meldpunt VWO')
-c.setFillColor(muted); c.setFont('DV',10.5); c.drawString(91*mm,H-45*mm,'Facilitaire melding voor personeel')
+c.setFillColor(brand); c.setFont('DVB',18); c.drawString(88*mm,H-35*mm,'Meldpunt VWO')
+c.setFillColor(muted); c.setFont('DV',9.2); c.drawString(88*mm,H-44*mm,'Facilitaire melding')
+c.drawString(88*mm,H-50*mm,'voor personeel')
 # QR
-qs=38*mm; qx=W-60*mm; qy=H-62*mm
+qs=34*mm; qx=W-53*mm; qy=H-60*mm
 c.drawImage(str(QR),qx,qy,width=qs,height=qs,mask='auto')
 # Intro
 c.setFillColor(ink); c.setFont('DVB',15); c.drawString(18*mm,H-84*mm,'Iets kapot, vies, leeg of onveilig?')
@@ -56,7 +57,7 @@ c.setFillColor(HexColor('#12603d')); c.setFont('DVB',9.5); c.drawString(25*mm,51
 c.setFont('DV',8.6); c.drawString(25*mm,44.5*mm,'Bijvoorbeeld: 003, 105, 225 of Personeelswerkkamer.')
 c.drawString(25*mm,39*mm,'Bij direct gevaar of spoed: volg de interne noodprocedure en neem direct persoonlijk contact op.')
 # Footer
-c.setFillColor(muted); c.setFont('DV',7.8); c.drawString(18*mm,15*mm,'https://jkor95.github.io/Facilitair/')
+c.setFillColor(muted); c.setFont('DV',7.8); c.drawString(18*mm,15*mm,'https://meldpuntvwo.nl/')
 c.drawRightString(W-18*mm,15*mm,'Meldpunt VWO - personeelsuitleg')
 c.save()
 QR.unlink(missing_ok=True)

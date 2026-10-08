@@ -1,8 +1,15 @@
-MELDPUNT VWO v5.7.6
+MELDPUNT VWO v5.7.7
 
-Dit is een alleen-frontend update.
+OFFICIEEL ADRES: https://meldpuntvwo.nl/
+
+Dit is een alleen-GitHub update.
 
 1. Vervang de bestaande websitebestanden in de root van de huidige GitHub Pages-repository.
-2. Er is geen SQL-migratie nodig.
-3. De bestaande smart-function hoeft niet aangepast te worden.
-4. Open daarna de normale website en vernieuw indien nodig eenmalig de cache.
+2. Laat het bestand CNAME in de root staan; dit koppelt GitHub Pages aan meldpuntvwo.nl.
+3. Er is geen SQL-migratie nodig.
+4. De bestaande smart-function hoeft niet aangepast te worden.
+5. Controleer in GitHub > Settings > Pages dat Custom domain op meldpuntvwo.nl staat.
+6. Zet Enforce HTTPS aan zodra GitHub de DNS-controle heeft goedgekeurd.
+7. Open daarna https://meldpuntvwo.nl/
+
+Let op: een eerder geïnstalleerde PWA vanaf jkor95.github.io is technisch een andere website-origin. Verwijder die oude snelkoppeling/app en installeer Meldpunt VWO opnieuw vanaf meldpuntvwo.nl als je de PWA gebruikt.
