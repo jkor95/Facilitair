@@ -1,9 +1,15 @@
-MELDPUNT VWO v5.7.8
+MELDPUNT VWO v5.7.9
 
-LET OP: deze versie heeft naast GitHub ook 2 Supabase-stappen nodig.
+HOTFIX OP v5.7.8
 
-1. Voer supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
-2. Vervang de code van de bestaande Edge Function smart-function door supabase/functions/dalton-api/index.ts en deploy.
-3. Upload daarna de websitebestanden naar GitHub Pages.
+Als je v5.7.8 al hebt geinstalleerd (SQL uitgevoerd en smart-function bijgewerkt):
+1. Upload/vervang alleen de websitebestanden in GitHub Pages.
+2. Je hoeft GEEN SQL opnieuw uit te voeren.
+3. Je hoeft de smart-function NIET opnieuw te deployen.
+
+Als je rechtstreeks van v5.7.7 of ouder naar v5.7.9 gaat, voer dan eerst de twee backendstappen van v5.7.8 uit:
+- supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x
+- supabase/functions/dalton-api/index.ts naar de bestaande smart-function en deploy
+Daarna upload je de websitebestanden naar GitHub Pages.
 
 Officieel adres: https://meldpuntvwo.nl/

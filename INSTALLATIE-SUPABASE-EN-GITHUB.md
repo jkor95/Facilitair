@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.7.8 installeren/updaten
+# Meldpunt VWO v5.7.9 installeren/updaten
 
 Deze release heeft **wel** een kleine databasewijziging en een update van `smart-function` nodig.
 

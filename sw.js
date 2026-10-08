@@ -1,4 +1,4 @@
-const CACHE = 'meldpunt-vwo-v5.7.8';
+const CACHE = 'meldpunt-vwo-v5.7.9';
 const ASSETS = [
   './','./index.html','./manifest.webmanifest','./assets/styles.css','./assets/config.js','./assets/app.js',
   './assets/icon-192.png','./assets/icon-512.png','./assets/logo-meldpunt-vwo.png'
