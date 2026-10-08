@@ -1,6 +1,6 @@
 # Meldpunt VWO
 
-Productieversie **v5.8.5** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.6** voor `https://meldpuntvwo.nl/`.
 
 In deze versie staat **Beveiliging melderspagina** als zelfstandig beheeronderdeel. Het recht om het maandwoord te bekijken/wijzigen kan afzonderlijk worden toegekend aan Facilitair- of Conciërge-medewerkers.
 

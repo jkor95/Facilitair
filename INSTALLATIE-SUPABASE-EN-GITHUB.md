@@ -1,4 +1,4 @@
-# Installatie Meldpunt VWO v5.8.5
+# Installatie Meldpunt VWO v5.8.6
 
 ## 1. Supabase
 Er is voor deze versie **geen SQL-migratie** nodig.
@@ -23,7 +23,7 @@ Hier kun je:
 Het maandwoord is niet hoofdlettergevoelig.
 
 ### Bestaand woord uit v5.8.4
-In v5.8.4 werd alleen een eenrichtingshash van het maandwoord opgeslagen. Daardoor kan een woord dat vóór v5.8.5 was ingesteld niet worden teruggelezen. Stel na de update één keer opnieuw hetzelfde of een nieuw maandwoord in. Vanaf dat moment wordt het actuele woord zichtbaar opgeslagen voor bevoegde beheerders.
+In v5.8.4 werd alleen een eenrichtingshash van het maandwoord opgeslagen. Daardoor kan een woord dat vóór v5.8.6 was ingesteld niet worden teruggelezen. Stel na de update één keer opnieuw hetzelfde of een nieuw maandwoord in. Vanaf dat moment wordt het actuele woord zichtbaar opgeslagen voor bevoegde beheerders.
 
 ## 4. Recht afzonderlijk toewijzen
 De hoofdbeheerder kan in **Beheerfuncties per medewerker** het losse recht **Beveiliging melderspagina** toewijzen aan een Facilitair- of Conciërge-medewerker. Dit staat los van het recht **Meldpagina aanpassen**.

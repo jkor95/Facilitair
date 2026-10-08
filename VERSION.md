@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.8.5
+# Meldpunt VWO v5.8.6
 
 Beveiliging melderspagina is losgetrokken van **Meldpagina aanpassen**.
 
@@ -18,4 +18,4 @@ Het maandwoord uit v5.8.4 was alleen als hash opgeslagen en kan daarom niet word
 - Werk de bestaande `smart-function` bij met `supabase/functions/dalton-api/index.ts`.
 - Vervang daarna de GitHub-bestanden door deze versie.
 
-Backend/API-versie: 5.85. Frontend/PWA-cache: 5.8.5.
+Backend/API-versie: 5.85. Frontend/PWA-cache: 5.8.6.

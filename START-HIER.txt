@@ -1,4 +1,4 @@
-MELDPUNT VWO v5.8.5
+MELDPUNT VWO v5.8.6
 
 Vanaf v5.8.4:
 
