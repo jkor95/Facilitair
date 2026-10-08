@@ -1,6 +1,6 @@
-MELDPUNT VWO v5.8.0
+MELDPUNT VWO v5.8.1
 
-UPDATE VANAF v5.7.9
+UPDATE VANAF v5.8.0
 
 1. SUPABASE - SMART-FUNCTION
    Open je bestaande Edge Function `smart-function`.
@@ -9,7 +9,7 @@ UPDATE VANAF v5.7.9
    Deploy de function opnieuw.
 
 2. GEEN SQL
-   Voor v5.8.0 hoef je geen nieuwe SQL uit te voeren.
+   Voor v5.8.1 hoef je geen nieuwe SQL uit te voeren.
    Heb je v5.7.8 nog nooit geinstalleerd, voer dan eerst supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
 
 3. GITHUB
@@ -17,8 +17,11 @@ UPDATE VANAF v5.7.9
    Laat CNAME staan; deze bevat meldpuntvwo.nl.
 
 4. TEST
-   Open https://meldpuntvwo.nl/
-   Ga als hoofdbeheerder naar Meldpagina aanpassen -> Filter & sortering actuele storingen.
-   Sla de gewenste filters/sortering op en controleer daarna de openbare meldpagina.
+   - Hoofdbeheer -> Meldpagina aanpassen: controleer sortering en categorievolgorde.
+   - Open een melding met e-mailadres en test Terugkoppeling mailen.
+   - Hoofdbeheer -> Beheerfuncties per medewerker: geef een Facilitair/Conciërge-account 1 beheerfunctie en controleer met dat account de knop Beheer.
 
-Nieuw: actuele storingen is inklapbaar en kan centraal worden gefilterd/gesorteerd.
+Nieuw in v5.8.1:
+- handmatige categorievolgorde voor Actuele storingen;
+- mailconcept zonder automatische handtekening, met status en interne notitie;
+- per Facilitair/Conciërge-account gedelegeerde beheerfuncties.

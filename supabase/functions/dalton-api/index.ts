@@ -31,8 +31,10 @@ const DEFAULT_SETTINGS:any = {
   publicOutageCategories:null,
   publicOutageStatuses:null,
   publicOutageSort:'category',
+  publicOutageCategoryOrder:null,
   rolePermissions: DEFAULT_ROLE_PERMISSIONS,
   accountRoleOverrides:{},
+  delegatedAdminPermissions:{},
   categories:['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'],
   reportLocationExamples:['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'],
   reportTitleExamples:['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'],
@@ -58,6 +60,7 @@ async function loadSettingsObj(){
   for (const row of data || []) out[row.key] = row.value
   out.rolePermissions = normalizeRolePermissions(out.rolePermissions)
   if (!out.accountRoleOverrides || typeof out.accountRoleOverrides !== 'object' || Array.isArray(out.accountRoleOverrides)) out.accountRoleOverrides = {}
+  if (!out.delegatedAdminPermissions || typeof out.delegatedAdminPermissions !== 'object' || Array.isArray(out.delegatedAdminPermissions)) out.delegatedAdminPermissions = {}
   return out
 }
 async function saveSetting(key:string,value:any){
@@ -73,6 +76,9 @@ function permissionsFor(role:string, settings:any){
   return normalizeRolePermissions(settings?.rolePermissions)[role] || {}
 }
 function isOperationalRole(role:string){ return role === 'facility' || role === 'concierge' }
+const DEFAULT_ADMIN_FUNCTIONS:any = { manageRouting:false,manageAccounts:false,manageRolePermissions:false,manageGeneralSettings:false,manageCategories:false,manageTicketNumbering:false,viewSystemStatus:false,manageReportPage:false,viewAuditLog:false }
+function adminFunctionsFor(account:any, settings:any){ if(account?.role==='admin') return new Proxy({}, {get:()=>true}); const raw=settings?.delegatedAdminPermissions?.[account?.id]; return { ...DEFAULT_ADMIN_FUNCTIONS, ...(raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{}) } }
+function hasAdminFunction(account:any, settings:any, key:string){ return account?.role==='admin' || !!adminFunctionsFor(account,settings)[key] }
 function ticketVisibleFor(account:any, role:string, perms:any, ticket:any, assigneeIds:string[]){
   if (role === 'admin') return true
   if (!isOperationalRole(role)) return false
@@ -219,13 +225,14 @@ async function getState(account: any, existingSettings?: any) {
   const clientAccount = { ...account, role }
   if (role === 'staff') {
     return {
-      version: 5.78,
+      version: 5.81,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
       settings: settingsObj, auditLog: [],
     }
   }
   const perms = permissionsFor(role, settingsObj)
+  const adminFns = adminFunctionsFor(clientAccount, settingsObj)
   const [{ data: accounts }, { data: tickets }, { data: histories }, { data: routing }, { data: routingMembers }, { data: ticketAssignments }, { data: audits }] = await Promise.all([
     db.from('dm_accounts').select('*').order('name'),
     db.from('dm_tickets').select('*').order('created_at', { ascending: false }),
@@ -233,7 +240,7 @@ async function getState(account: any, existingSettings?: any) {
     db.from('dm_routing').select('*'),
     db.from('dm_routing_members').select('*'),
     db.from('dm_ticket_assignments').select('*'),
-    role === 'admin' ? db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000) : Promise.resolve({ data: [] }),
+    (role === 'admin' || adminFns.viewAuditLog) ? db.from('dm_audit_logs').select('*').order('at', { ascending: false }).limit(5000) : Promise.resolve({ data: [] }),
   ])
   const histBy = new Map<number, any[]>()
   for (const h of histories || []) {
@@ -252,13 +259,16 @@ async function getState(account: any, existingSettings?: any) {
   }
   const mappedAccounts = []
   for (const raw of accounts || []) {
+    const effective = { ...raw, role:effectiveRole(raw,settingsObj) }
+    const canManageAccounts = role === 'admin' || !!adminFns.manageAccounts
+    if (role !== 'admin' && canManageAccounts && effective.role === 'admin') continue
+    if (role !== 'admin' && !canManageAccounts && !isOperationalRole(effective.role)) continue
     let pw = ''
-    if (role === 'admin') {
+    const maySeePassword = role === 'admin' || (canManageAccounts && effective.role !== 'admin')
+    if (maySeePassword) {
       try { pw = await decryptPassword(raw.password_cipher, raw.password_iv) } catch { pw = '(niet leesbaar)' }
     }
-    const effective = { ...raw, role:effectiveRole(raw,settingsObj) }
-    if (role !== 'admin' && !isOperationalRole(effective.role)) continue
-    mappedAccounts.push(safeAccount(effective, role === 'admin', pw))
+    mappedAccounts.push(safeAccount(effective, maySeePassword, pw))
   }
   const visibleRows = (tickets || []).filter((t:any)=>{
     const ids = ticketAssigneeMap.get(t.id) || (t.assignee ? [t.assignee] : [])
@@ -291,13 +301,17 @@ async function getState(account: any, existingSettings?: any) {
       history: role === 'admin' || perms.viewHistory ? (histBy.get(t.id) || []) : [],
     }
   }))
+  const current = safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : '')
+  current.adminFunctions = role === 'admin' ? { ...DEFAULT_ADMIN_FUNCTIONS, ...Object.fromEntries(Object.keys(DEFAULT_ADMIN_FUNCTIONS).map(k=>[k,true])) } : adminFns
+  const clientSettings:any = { ...settingsObj }
+  if (role !== 'admin') delete clientSettings.delegatedAdminPermissions
   return {
-    version: 5.78,
-    currentAccount: safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : ''),
+    version: 5.81,
+    currentAccount: current,
     accounts: mappedAccounts,
     tickets: mappedTickets,
     routing: Object.fromEntries((routing || []).map((r: any) => [r.category, { all: !!r.assign_all, accountIds: routingMemberMap.get(r.category) || (r.account_id ? [r.account_id] : []) }])),
-    settings: settingsObj,
+    settings: clientSettings,
     auditLog: (audits || []).map((x: any) => ({ id:x.id, at:x.at, actor:x.actor, actorId:x.actor_id, type:x.type, targetId:x.target_id, action:x.action })),
   }
 }
@@ -508,10 +522,10 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.80 })
+    if (action === 'health') return json({ ok:true, version:5.81 })
     if (action === 'public_config') {
-      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category' }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort'])
+      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder'])
       for (const row of rows || []) defaults[row.key] = row.value
       return json({ ok:true, settings:defaults })
     }
@@ -536,7 +550,8 @@ Deno.serve(async (req) => {
         id:t.ticket_no || '', createdAt:t.created_at, location:t.location, category:t.category, urgency:t.urgency, title:t.title, status:t.status
       }))
       const sortMode = ['category','newest','oldest','urgency'].includes(settings.publicOutageSort) ? settings.publicOutageSort : 'category'
-      const catOrder = new Map<string,number>(allCategories.map((cat:any,i:number)=>[String(cat),i]))
+      const orderSource = Array.isArray(settings.publicOutageCategoryOrder) ? [...settings.publicOutageCategoryOrder.filter((x:any)=>allCategories.includes(x)),...allCategories.filter((x:any)=>!settings.publicOutageCategoryOrder.includes(x))] : allCategories
+      const catOrder = new Map<string,number>(orderSource.map((cat:any,i:number)=>[String(cat),i]))
       const urgencyRank:any = { spoed:0, hoog:1, normaal:2, laag:3 }
       items.sort((a:any,b:any)=>{
         if (sortMode === 'category') return (catOrder.get(a.category) ?? 999)-(catOrder.get(b.category) ?? 999) || new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()
@@ -592,7 +607,15 @@ Deno.serve(async (req) => {
       return json({ok:true,state:await getState(account)})
     }
     if (action === 'upsert_account') {
-      if (account.role !== 'admin') return json({error:'Geen toegang'},403)
+      const delegated = account.role !== 'admin' && hasAdminFunction(account,requestSettings,'manageAccounts')
+      if (account.role !== 'admin' && !delegated) return json({error:'Geen toegang'},403)
+      if (delegated) {
+        if (String(payload.role||'facility') === 'admin') return json({error:'Alleen de hoofdbeheerder kan hoofdbeheeraccounts beheren'},403)
+        if (payload.id) {
+          const {data:target}=await db.from('dm_accounts').select('role').eq('id',String(payload.id)).maybeSingle()
+          if (target?.role === 'admin') return json({error:'Hoofdbeheerder-accounts zijn afgeschermd'},403)
+        }
+      }
       await upsertAccount(account,payload)
       return json({ok:true,state:await getState(account)})
     }
@@ -601,7 +624,7 @@ Deno.serve(async (req) => {
       return json({ok:true,state:await getState(account)})
     }
     if (action === 'set_routing') {
-      if(account.role!=='admin')return json({error:'Geen toegang'},403)
+      if(!hasAdminFunction(account,requestSettings,'manageRouting'))return json({error:'Geen toegang'},403)
       const category=String(payload.category||'')
       const all=!!payload.all
       const accountIds=Array.isArray(payload.accountIds)?[...new Set(payload.accountIds.map((x:any)=>String(x)).filter(Boolean))]:[]
@@ -615,7 +638,7 @@ Deno.serve(async (req) => {
       return json({ok:true,state:await getState(account)})
     }
     if (action === 'get_ticket_counter') {
-      if(account.role!=='admin')return json({error:'Geen toegang'},403)
+      if(!hasAdminFunction(account,requestSettings,'manageTicketNumbering'))return json({error:'Geen toegang'},403)
       const date=String(payload.date||'')
       ticketDatePrefix(date)
       const {data:row,error}=await db.from('dm_ticket_counters').select('last_number').eq('ticket_date',date).maybeSingle()
@@ -624,7 +647,7 @@ Deno.serve(async (req) => {
       return json({ok:true,date,nextNumber,preview:ticketPreview(date,nextNumber)})
     }
     if (action === 'set_ticket_counter') {
-      if(account.role!=='admin')return json({error:'Geen toegang'},403)
+      if(!hasAdminFunction(account,requestSettings,'manageTicketNumbering'))return json({error:'Geen toegang'},403)
       const date=String(payload.date||'')
       ticketDatePrefix(date)
       const nextNumber=Number(payload.nextNumber)
@@ -635,13 +658,25 @@ Deno.serve(async (req) => {
       return json({ok:true,date,nextNumber,preview:ticketPreview(date,nextNumber)})
     }
     if (action === 'set_setting') {
-      if(account.role!=='admin')return json({error:'Geen toegang'},403)
-      await saveSetting(String(payload.key),payload.value)
-      await audit(account.name,account.id,'settings',String(payload.key),`${payload.key}: ${JSON.stringify(payload.value)}`)
+      const key=String(payload.key)
+      if(account.role!=='admin'){
+        const reportKeys=new Set(['publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','reportLocationExamples','reportTitleExamples'])
+        let allowed=false
+        if(key==='categories')allowed=hasAdminFunction(account,requestSettings,'manageCategories')
+        else if(key==='rolePermissions')allowed=hasAdminFunction(account,requestSettings,'manageRolePermissions')
+        else if(key==='localNotifications'||key==='showAuditToFacility')allowed=hasAdminFunction(account,requestSettings,'manageGeneralSettings')
+        else if(reportKeys.has(key))allowed=hasAdminFunction(account,requestSettings,'manageReportPage')
+        if(!allowed)return json({error:'Geen toegang tot deze beheerinstelling'},403)
+      }
+      if(key==='delegatedAdminPermissions'&&account.role!=='admin')return json({error:'Alleen de hoofdbeheerder kan beheerrechten uitdelen'},403)
+      await saveSetting(key,payload.value)
+      await audit(account.name,account.id,'settings',key,`${key}: ${JSON.stringify(payload.value)}`)
       return json({ok:true,state:await getState(account)})
     }
     if (action === 'create_invite') {
-      if(account.role!=='admin')return json({error:'Geen toegang'},403)
+      const delegated=account.role!=='admin'&&hasAdminFunction(account,requestSettings,'manageAccounts')
+      if(account.role!=='admin'&&!delegated)return json({error:'Geen toegang'},403)
+      if(delegated){const {data:target}=await db.from('dm_accounts').select('role').eq('id',String(payload.accountId||'')).maybeSingle();if(target?.role==='admin')return json({error:'Hoofdbeheerder-accounts zijn afgeschermd'},403)}
       return json({ok:true,invite:await createInvite(account,payload)})
     }
 
