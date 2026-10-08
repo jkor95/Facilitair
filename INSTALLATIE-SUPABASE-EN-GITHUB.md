@@ -1,7 +1,7 @@
-# Meldpunt VWO v5.8.1 installeren/updaten
+# Meldpunt VWO v5.8.2 installeren/updaten
 
 ## Vanaf v5.8.0
-Voor v5.8.1 is **geen nieuwe SQL-migratie** nodig. De nieuwe categorievolgorde en gedelegeerde beheerrechten worden opgeslagen in de bestaande `dm_settings`-tabel.
+Voor v5.8.2 is **geen nieuwe SQL-migratie** nodig. De nieuwe categorievolgorde en gedelegeerde beheerrechten worden opgeslagen in de bestaande `dm_settings`-tabel.
 
 ### 1. smart-function bijwerken
 Open in Supabase de bestaande Edge Function `smart-function`. Vervang de volledige `index.ts` door:

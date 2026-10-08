@@ -1,4 +1,4 @@
-MELDPUNT VWO v5.8.1
+MELDPUNT VWO v5.8.2
 
 UPDATE VANAF v5.8.0
 
@@ -9,7 +9,7 @@ UPDATE VANAF v5.8.0
    Deploy de function opnieuw.
 
 2. GEEN SQL
-   Voor v5.8.1 hoef je geen nieuwe SQL uit te voeren.
+   Voor v5.8.2 hoef je geen nieuwe SQL uit te voeren.
    Heb je v5.7.8 nog nooit geinstalleerd, voer dan eerst supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
 
 3. GITHUB
@@ -21,7 +21,7 @@ UPDATE VANAF v5.8.0
    - Open een melding met e-mailadres en test Terugkoppeling mailen.
    - Hoofdbeheer -> Beheerfuncties per medewerker: geef een Facilitair/Conciërge-account 1 beheerfunctie en controleer met dat account de knop Beheer.
 
-Nieuw in v5.8.1:
+Nieuw in v5.8.2:
 - handmatige categorievolgorde voor Actuele storingen;
 - mailconcept zonder automatische handtekening, met status en interne notitie;
 - per Facilitair/Conciërge-account gedelegeerde beheerfuncties.

@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.8.1
+# Meldpunt VWO v5.8.2
 
 Uitbreiding van melderspagina, terugkoppelmail en gedelegeerde beheerrechten.
 
@@ -12,4 +12,11 @@ Uitbreiding van melderspagina, terugkoppelmail en gedelegeerde beheerrechten.
 ## Installatie vanaf v5.8.0
 Geen SQL-migratie nodig. Werk de bestaande smart-function bij met `supabase/functions/dalton-api/index.ts` en vervang daarna de GitHub-bestanden.
 
-Backend/API-versie: 5.81. Frontend/PWA-cache: 5.8.1.
+Backend/API-versie: 5.81. Frontend/PWA-cache: 5.8.2.
+
+
+## v5.8.2
+- Hotfix voor opslaan van Meldpagina aanpassen wanneer categorie/statusfilters op alle staan.
+- Null-instellingen vallen terug op standaard in plaats van een ongeldige databasewaarde op te slaan.
+- Duidelijkere foutmeldingen in plaats van [object Object].
+- Geen SQL-migratie nodig; GitHub + smart-function bijwerken.

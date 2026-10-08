@@ -64,8 +64,15 @@ async function loadSettingsObj(){
   return out
 }
 async function saveSetting(key:string,value:any){
+  // A null setting means: remove the override and fall back to the central default.
+  // dm_settings.value is NOT NULL, so writing JavaScript null would fail.
+  if (value === null) {
+    const { error } = await db.from('dm_settings').delete().eq('key', key)
+    if (error) throw new Error(error.message || JSON.stringify(error))
+    return
+  }
   const { error } = await db.from('dm_settings').upsert({ key, value, updated_at:new Date().toISOString() })
-  if (error) throw error
+  if (error) throw new Error(error.message || JSON.stringify(error))
 }
 function effectiveRole(account:any, settings:any){
   const override = settings?.accountRoleOverrides?.[account?.id]
@@ -683,7 +690,7 @@ Deno.serve(async (req) => {
     return json({ error:'Onbekende actie' },400)
   } catch (e) {
     console.error(e)
-    const msg = e instanceof Error ? e.message : String(e)
+    const msg = e instanceof Error ? e.message : (e && typeof e === 'object' && 'message' in e ? String((e as any).message) : (()=>{ try { return JSON.stringify(e) } catch { return String(e) } })())
     return json({ error:msg || 'Onbekende fout' },500)
   }
 })

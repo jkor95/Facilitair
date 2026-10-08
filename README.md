@@ -1,8 +1,8 @@
-# Meldpunt VWO v5.8.1
+# Meldpunt VWO v5.8.2
 
 Meldpunt VWO voor Stedelijk Dalton Lyceum Dordrecht. Publieke meldpagina op `https://meldpuntvwo.nl/` met een eigen werkomgeving voor Facilitair en Conciërge en een beheeromgeving voor Hoofdbeheer.
 
-## Nieuw in v5.8.1
+## Nieuw in v5.8.2
 - Hoofdbeheer kan de volgorde van categorieën in **Actuele storingen** handmatig bepalen.
 - De terugkoppelmail bevat de actuele status en interne notitie. Er wordt geen automatische handtekening toegevoegd; de medewerker gebruikt de handtekening uit het eigen mailprogramma.
 - Hoofdbeheer kan per Facilitair- of Conciërge-account specifieke onderdelen van de beheerpagina toekennen.
