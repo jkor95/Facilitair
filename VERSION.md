@@ -1,3 +1,18 @@
+# Meldpunt VWO v5.8.3
+
+Hotfix voor ongewenst automatisch vernieuwen tijdens typen, aanvinken en bewerken.
+
+## Nieuw in v5.8.3
+- De 30-seconden achtergrondcontrole haalt nog wel nieuwe gegevens op voor meldingen en badges, maar bouwt de zichtbare pagina niet meer automatisch opnieuw op.
+- Ingevulde tekst, selecties en vinkjes blijven daardoor staan totdat de gebruiker zelf opslaat of het scherm afsluit.
+- Bij bewust sluiten van een dialoog wordt de actuele serverstatus opgehaald en de pagina daarna opnieuw opgebouwd.
+- Handmatig **Vernieuwen** blijft direct verversen.
+- Geen SQL-migratie en geen smart-function-update nodig.
+
+Backend/API-versie: 5.81. Frontend/PWA-cache: 5.8.3.
+
+---
+
 # Meldpunt VWO v5.8.2
 
 Uitbreiding van melderspagina, terugkoppelmail en gedelegeerde beheerrechten.

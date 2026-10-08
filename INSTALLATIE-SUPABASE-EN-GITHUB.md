@@ -1,5 +1,8 @@
 # Meldpunt VWO v5.8.2 installeren/updaten
 
+> **v5.8.3:** de zichtbare pagina ververst niet meer automatisch tijdens typen/aanvinken. Achtergrondcontrole blijft actief. Voor deze update is alleen GitHub nodig; geen SQL en geen smart-function-update.
+
+
 ## Vanaf v5.8.0
 Voor v5.8.2 is **geen nieuwe SQL-migratie** nodig. De nieuwe categorievolgorde en gedelegeerde beheerrechten worden opgeslagen in de bestaande `dm_settings`-tabel.
 

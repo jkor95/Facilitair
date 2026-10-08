@@ -1,5 +1,8 @@
 # Meldpunt VWO v5.8.2
 
+> **v5.8.3:** de zichtbare pagina ververst niet meer automatisch tijdens typen/aanvinken. Achtergrondcontrole blijft actief. Voor deze update is alleen GitHub nodig; geen SQL en geen smart-function-update.
+
+
 Meldpunt VWO voor Stedelijk Dalton Lyceum Dordrecht. Publieke meldpagina op `https://meldpuntvwo.nl/` met een eigen werkomgeving voor Facilitair en Conciërge en een beheeromgeving voor Hoofdbeheer.
 
 ## Nieuw in v5.8.2

@@ -1,27 +1,23 @@
-MELDPUNT VWO v5.8.2
+MELDPUNT VWO v5.8.3
 
-UPDATE VANAF v5.8.0
+UPDATE VANAF v5.8.2
 
-1. SUPABASE - SMART-FUNCTION
-   Open je bestaande Edge Function `smart-function`.
-   Vervang de volledige index.ts door:
-   supabase/functions/dalton-api/index.ts
-   Deploy de function opnieuw.
-
-2. GEEN SQL
-   Voor v5.8.2 hoef je geen nieuwe SQL uit te voeren.
-   Heb je v5.7.8 nog nooit geinstalleerd, voer dan eerst supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
-
-3. GITHUB
+1. GITHUB
    Upload/vervang de websitebestanden in de root van repository Facilitair.
    Laat CNAME staan; deze bevat meldpuntvwo.nl.
 
-4. TEST
-   - Hoofdbeheer -> Meldpagina aanpassen: controleer sortering en categorievolgorde.
-   - Open een melding met e-mailadres en test Terugkoppeling mailen.
-   - Hoofdbeheer -> Beheerfuncties per medewerker: geef een Facilitair/Conciërge-account 1 beheerfunctie en controleer met dat account de knop Beheer.
+2. GEEN SUPABASE-AANPASSING
+   Voor v5.8.3 hoef je geen SQL uit te voeren en de bestaande smart-function NIET te wijzigen.
 
-Nieuw in v5.8.2:
-- handmatige categorievolgorde voor Actuele storingen;
-- mailconcept zonder automatische handtekening, met status en interne notitie;
-- per Facilitair/Conciërge-account gedelegeerde beheerfuncties.
+3. TEST
+   - Open Hoofdbeheer -> Meldpagina aanpassen.
+   - Typ tekst of wijzig meerdere vinkjes/selecties en wacht minimaal 30 seconden.
+   - Controleer dat de pagina NIET verspringt of opnieuw wordt opgebouwd.
+   - Klik Opslaan: pas dan mag de pagina met de opgeslagen gegevens opnieuw worden weergegeven.
+   - Open een melding, wijzig een veld zonder op te slaan en wacht 30 seconden: de invoer moet blijven staan.
+   - Klik Sluiten: de actuele gegevens worden daarna opnieuw ingelezen.
+
+Nieuw in v5.8.3:
+- geen automatische zichtbare refresh meer tijdens werken;
+- achtergrondcontrole voor nieuwe meldingen/badges blijft actief;
+- verversen alleen na bewuste acties zoals Opslaan, Sluiten, handmatig Vernieuwen of opnieuw openen.
