@@ -1,8 +1,12 @@
-# Meldpunt VWO v5.7.5
+# Meldpunt VWO v5.7.6
 
-Wijzigingen:
-- Als `Kan les / werk doorgaan?` op `Nee` wordt gezet, wordt de urgentie automatisch `SPOED`.
-- Bij deze keuze verschijnt direct een rode instructie om ook een conciërge te bellen voor een snelle oplossing.
-- De urgentiekeuze wordt zolang `Nee` gekozen is vastgezet op `SPOED`.
-- De Edge Function dwingt dezelfde regel server-side af; een melding met `canContinue = nee` kan daardoor niet als lagere urgentie worden opgeslagen.
-- Geen SQL-migratie nodig.
+## Wijzigingen
+- Inlogpagina vereenvoudigd en neutraler gemaakt.
+- Voorbeeldtekst bij inlognaam verwijderd.
+- Eerste-hoofdbeheer tekst onder het inlogformulier verwijderd.
+- Zichtbare verwijzingen naar technische platformnamen uit de app verwijderd.
+- Wachtwoordhulp toegevoegd: vraag een resetlink bij de beheerder.
+- Cloudstatus hernoemd naar Systeemstatus.
+
+## Installatie
+Deze versie is alleen een frontend-update. Er is geen SQL-migratie en geen wijziging van `smart-function` nodig.

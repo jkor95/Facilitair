@@ -1,0 +1,1 @@
+Meldpunt VWO v5.7.6: geen SQL-migratie nodig. Deze update is alleen frontend/GitHub.

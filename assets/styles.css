@@ -68,3 +68,5 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 @media(max-width:850px){.permission-role-grid{grid-template-columns:1fr}}
 
 .urgent-notice{margin-top:10px;padding:12px 14px;border:2px solid #b42318;border-radius:10px;background:#fff1f0;color:#7a160f;line-height:1.45}.urgent-notice b{color:#b42318}
+
+.login-help{margin-top:14px;margin-bottom:0}

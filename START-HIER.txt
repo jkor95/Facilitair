@@ -1,12 +1,8 @@
-DALTON MELDPUNT v5 - CENTRAAL GESYNCHRONISEERD
+MELDPUNT VWO v5.7.6
 
-1. Lees INSTALLATIE-SUPABASE-EN-GITHUB.md
-2. Voer supabase/schema.sql uit in Supabase SQL Editor.
-3. Genereer DALTON_MASTER_KEY met tools/genereer-master-key.html en zet hem bij Edge Function Secrets.
-4. Deploy supabase/functions/dalton-api/index.ts als Edge Function 'dalton-api'.
-5. Zet Verify JWT voor deze function UIT.
-6. Vul de Function URL en GitHub Pages URL in assets/config.js.
-7. Upload de website naar GitHub Pages.
-8. Eerste login: Admin / Admin.
+Dit is een alleen-frontend update.
 
-Supabase Auth wordt niet gebruikt.
+1. Vervang de bestaande websitebestanden in de root van de huidige GitHub Pages-repository.
+2. Er is geen SQL-migratie nodig.
+3. De bestaande smart-function hoeft niet aangepast te worden.
+4. Open daarna de normale website en vernieuw indien nodig eenmalig de cache.
