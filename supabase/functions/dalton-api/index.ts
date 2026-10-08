@@ -27,6 +27,7 @@ const DEFAULT_ROLE_PERMISSIONS:any = {
 const DEFAULT_SETTINGS:any = {
   showAuditToFacility:false,
   localNotifications:true,
+  publicOutageOverview:true,
   rolePermissions: DEFAULT_ROLE_PERMISSIONS,
   accountRoleOverrides:{},
   categories:['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'],
@@ -215,7 +216,7 @@ async function getState(account: any, existingSettings?: any) {
   const clientAccount = { ...account, role }
   if (role === 'staff') {
     return {
-      version: 5.74,
+      version: 5.78,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
       settings: settingsObj, auditLog: [],
@@ -269,6 +270,7 @@ async function getState(account: any, existingSettings?: any) {
       createdAt: t.created_at,
       updatedAt: t.updated_at,
       reporter: role === 'admin' || perms.viewReporter ? t.reporter : '',
+      reporterEmail: role === 'admin' || perms.viewReporter ? (t.reporter_email || '') : '',
       location: t.location,
       category: t.category,
       urgency: t.urgency,
@@ -287,7 +289,7 @@ async function getState(account: any, existingSettings?: any) {
     }
   }))
   return {
-    version: 5.74,
+    version: 5.78,
     currentAccount: safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : ''),
     accounts: mappedAccounts,
     tickets: mappedTickets,
@@ -344,8 +346,11 @@ async function createTicket(payload: any, actorAccount: any | null) {
   const primary = routeIds[0] || null
   const canContinue = String(payload.canContinue || 'ja')
   const urgency = canContinue === 'nee' ? 'spoed' : String(payload.urgency || 'normaal')
+  const reporterEmail = String(payload.reporterEmail || '').trim().slice(0,254)
+  if (reporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporterEmail)) throw new Error('Vul een geldig e-mailadres in')
   const { data: inserted, error } = await db.from('dm_tickets').insert({
     reporter: String(payload.reporter || '').slice(0,160),
+    reporter_email: reporterEmail,
     location: String(payload.location || '').slice(0,300),
     category,
     urgency,
@@ -500,12 +505,26 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.75 })
+    if (action === 'health') return json({ ok:true, version:5.78 })
     if (action === 'public_config') {
-      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12 }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize'])
+      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview'])
       for (const row of rows || []) defaults[row.key] = row.value
       return json({ ok:true, settings:defaults })
+    }
+    if (action === 'public_outages') {
+      const settings = await loadSettingsObj()
+      if (settings.publicOutageOverview === false) return json({ ok:true, enabled:false, items:[] })
+      const { data: rows, error } = await db.from('dm_tickets')
+        .select('ticket_no,created_at,location,category,urgency,title,status')
+        .neq('status','done')
+        .order('created_at',{ascending:false})
+        .limit(100)
+      if (error) throw error
+      const items = (rows || []).map((t:any)=>({
+        id:t.ticket_no || '', createdAt:t.created_at, location:t.location, category:t.category, urgency:t.urgency, title:t.title, status:t.status
+      }))
+      return json({ ok:true, enabled:true, items })
     }
     if (action === 'login') {
       const result = await login(payload.username, payload.password)

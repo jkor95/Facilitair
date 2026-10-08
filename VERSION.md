@@ -1,11 +1,5 @@
-# Meldpunt VWO v5.7.7
+# Meldpunt VWO v5.7.8
 
-## Wijzigingen
-- Officieel domein ingesteld op `https://meldpuntvwo.nl/`.
-- GitHub Pages `CNAME` toegevoegd.
-- PWA start-URL/scope geschikt gemaakt voor het eigen hoofddomein.
-- Reset- en uitnodigingslinks gebruiken het eigen domein.
-- QR-code, poster en personeelsuitleg bijgewerkt naar het eigen domein.
+Release met optioneel e-mailadres voor terugkoppeling, mailto-knop voor Facilitair/Conciërge en een door Hoofdbeheer in- of uitschakelbaar openbaar storingsoverzicht.
 
-## Installatie
-Alleen GitHub/frontend bijwerken. Geen SQL-migratie en geen wijziging van `smart-function` nodig.
+Backend/API-versie: 5.78.

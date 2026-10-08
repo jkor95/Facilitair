@@ -1,18 +1,15 @@
-# Meldpunt VWO v5.7.7
+# Meldpunt VWO v5.7.8
 
-Meldpunt VWO draait als GitHub Pages-frontend met de bestaande centrale backend. Het officiële publieke adres is:
+Officieel adres: **https://meldpuntvwo.nl/**
 
-**https://meldpuntvwo.nl/**
+## Nieuw in v5.7.8
 
-## Nieuw in v5.7.7
-- Eigen domein `meldpuntvwo.nl` volledig verwerkt.
-- `CNAME` toegevoegd voor GitHub Pages.
-- Centrale `publicUrl` gewijzigd naar `https://meldpuntvwo.nl/`.
-- Uitnodigings- en resetlinks gebruiken voortaan het nieuwe domein.
-- PWA-manifest en cache bijgewerkt voor het hoofddomein.
-- Canonical URL ingesteld op `https://meldpuntvwo.nl/`.
-- Personeelsposter, QR-code en personeelsuitleg verwijzen naar het nieuwe domein.
-- Geen SQL-migratie nodig.
-- Geen wijziging aan `smart-function` nodig.
+- Melder kan optioneel een e-mailadres invullen voor terugkoppeling.
+- Facilitair en conciërges zien dit adres alleen wanneer hun rol meldergegevens mag bekijken.
+- In een melding staat dan de knop **Terugkoppeling mailen**. Deze opent het eigen mailprogramma van de medewerker met het adres van de melder, een ingevuld onderwerp en een concepttekst ondertekend met de naam van de ingelogde medewerker. De app verstuurt zelf geen e-mail en gebruikt geen algemeen afzenderadres.
+- De openbare meldpagina kan een **Actuele storingen**-overzicht tonen met alleen veilige informatie: meldingsnummer, titel, locatie, categorie, urgentie, status en tijdstip. Naam, e-mailadres, foto, toelichting, interne notities en toewijzingen worden niet openbaar getoond.
+- Hoofdbeheer kan het storingsoverzicht aan/uit zetten via **Meldpagina aanpassen**.
 
-Zie `START-HIER.txt` en `INSTALLATIE-SUPABASE-EN-GITHUB.md` voor de update-stappen.
+## Update vereist
+
+Deze versie bevat een kleine database-uitbreiding en een bijgewerkte Edge Function. Zie `INSTALLATIE-SUPABASE-EN-GITHUB.md`.

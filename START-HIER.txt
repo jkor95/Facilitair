@@ -1,15 +1,9 @@
-MELDPUNT VWO v5.7.7
+MELDPUNT VWO v5.7.8
 
-OFFICIEEL ADRES: https://meldpuntvwo.nl/
+LET OP: deze versie heeft naast GitHub ook 2 Supabase-stappen nodig.
 
-Dit is een alleen-GitHub update.
+1. Voer supabase/UPGRADE-v5.7.8-EENMALIG.sql precies 1x uit.
+2. Vervang de code van de bestaande Edge Function smart-function door supabase/functions/dalton-api/index.ts en deploy.
+3. Upload daarna de websitebestanden naar GitHub Pages.
 
-1. Vervang de bestaande websitebestanden in de root van de huidige GitHub Pages-repository.
-2. Laat het bestand CNAME in de root staan; dit koppelt GitHub Pages aan meldpuntvwo.nl.
-3. Er is geen SQL-migratie nodig.
-4. De bestaande smart-function hoeft niet aangepast te worden.
-5. Controleer in GitHub > Settings > Pages dat Custom domain op meldpuntvwo.nl staat.
-6. Zet Enforce HTTPS aan zodra GitHub de DNS-controle heeft goedgekeurd.
-7. Open daarna https://meldpuntvwo.nl/
-
-Let op: een eerder geïnstalleerde PWA vanaf jkor95.github.io is technisch een andere website-origin. Verwijder die oude snelkoppeling/app en installeer Meldpunt VWO opnieuw vanaf meldpuntvwo.nl als je de PWA gebruikt.
+Officieel adres: https://meldpuntvwo.nl/
