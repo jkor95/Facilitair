@@ -1,6 +1,6 @@
-MELDPUNT VWO v5.8.4
+MELDPUNT VWO v5.8.5
 
-Vanaf v5.8.3:
+Vanaf v5.8.4:
 
 1. SUPABASE
    - Geen SQL uitvoeren.
@@ -13,11 +13,17 @@ Vanaf v5.8.3:
    - Vervang/upload de websitebestanden uit deze map naar de root van repository Facilitair.
    - Laat CNAME staan; deze bevat meldpuntvwo.nl.
 
-3. INSTELLEN
-   - Log in als hoofdbeheerder, of als medewerker met beheerrecht `Meldpagina aanpassen`.
-   - Open Meldpagina aanpassen.
-   - Vul bij Beveiliging melderspagina een nieuw maandwoord in.
-   - Zet `Maandwoord verplicht` aan.
-   - Klik `Meldpagina opslaan`.
+3. BEVEILIGING MELDERSPAGINA
+   - Log in als hoofdbeheerder.
+   - Open het aparte onderdeel `Beveiliging melderspagina`.
+   - Als er al een maandwoord uit v5.8.4 actief was: vul het één keer opnieuw in en sla op.
+     De oude versie bewaarde alleen een hash, waardoor dat bestaande woord niet kan worden teruggelezen.
+   - Vanaf nu wordt het actuele maandwoord in dit onderdeel zichtbaar getoond.
+   - Het maandwoord is niet hoofdlettergevoelig.
 
-Het maandwoord is niet hoofdlettergevoelig.
+4. BEHEERRECHT UITDELEN
+   - Open `Beheerfuncties per medewerker`.
+   - Vink per gewenste Facilitair- of Conciërge-medewerker `Beveiliging melderspagina` aan.
+   - Die medewerker kan dan alleen dit onderdeel beheren als geen andere beheerfuncties zijn toegekend.
+
+Inloggen voor Facilitair, Conciërge en hoofdbeheer is altijd mogelijk zonder maandwoord.

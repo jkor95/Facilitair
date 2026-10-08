@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS:any = {
   localNotifications:true,
   publicAccessGateEnabled:false,
   publicAccessWordHash:'',
+  publicAccessWordDisplay:'',
   publicOutageOverview:true,
   publicOutageCategories:null,
   publicOutageStatuses:null,
@@ -85,7 +86,7 @@ function permissionsFor(role:string, settings:any){
   return normalizeRolePermissions(settings?.rolePermissions)[role] || {}
 }
 function isOperationalRole(role:string){ return role === 'facility' || role === 'concierge' }
-const DEFAULT_ADMIN_FUNCTIONS:any = { manageRouting:false,manageAccounts:false,manageRolePermissions:false,manageGeneralSettings:false,manageCategories:false,manageTicketNumbering:false,viewSystemStatus:false,manageReportPage:false,viewAuditLog:false }
+const DEFAULT_ADMIN_FUNCTIONS:any = { manageRouting:false,manageAccounts:false,manageRolePermissions:false,manageGeneralSettings:false,manageCategories:false,manageTicketNumbering:false,viewSystemStatus:false,managePublicAccess:false,manageReportPage:false,viewAuditLog:false }
 function adminFunctionsFor(account:any, settings:any){ if(account?.role==='admin') return new Proxy({}, {get:()=>true}); const raw=settings?.delegatedAdminPermissions?.[account?.id]; return { ...DEFAULT_ADMIN_FUNCTIONS, ...(raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{}) } }
 function hasAdminFunction(account:any, settings:any, key:string){ return account?.role==='admin' || !!adminFunctionsFor(account,settings)[key] }
 function ticketVisibleFor(account:any, role:string, perms:any, ticket:any, assigneeIds:string[]){
@@ -257,10 +258,10 @@ async function getState(account: any, existingSettings?: any) {
   const clientAccount = { ...account, role }
   if (role === 'staff') {
     return {
-      version: 5.81,
+      version: 5.85,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
-      settings: { ...settingsObj, publicAccessWordHash:undefined, publicAccessWordSet:!!settingsObj.publicAccessWordHash }, auditLog: [],
+      settings: { ...settingsObj, publicAccessWordHash:undefined, publicAccessWordDisplay:undefined, publicAccessWordSet:!!settingsObj.publicAccessWordHash }, auditLog: [],
     }
   }
   const perms = permissionsFor(role, settingsObj)
@@ -337,9 +338,10 @@ async function getState(account: any, existingSettings?: any) {
   current.adminFunctions = role === 'admin' ? { ...DEFAULT_ADMIN_FUNCTIONS, ...Object.fromEntries(Object.keys(DEFAULT_ADMIN_FUNCTIONS).map(k=>[k,true])) } : adminFns
   const clientSettings:any = { ...settingsObj, publicAccessWordSet:!!settingsObj.publicAccessWordHash }
   delete clientSettings.publicAccessWordHash
+  if (role !== 'admin' && !adminFns.managePublicAccess) delete clientSettings.publicAccessWordDisplay
   if (role !== 'admin') delete clientSettings.delegatedAdminPermissions
   return {
-    version: 5.81,
+    version: 5.85,
     currentAccount: current,
     accounts: mappedAccounts,
     tickets: mappedTickets,
@@ -558,7 +560,7 @@ Deno.serve(async (req) => {
     if (action === 'health') return json({ ok:true, version:5.84 })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder'])
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder'])
       for (const row of rows || []) defaults[row.key] = row.value
       const { data: accessWordRow } = await db.from('dm_settings').select('value').eq('key','publicAccessWordHash').maybeSingle()
       defaults.publicAccessWordSet=!!accessWordRow?.value
@@ -710,14 +712,16 @@ Deno.serve(async (req) => {
       return json({ok:true,date,nextNumber,preview:ticketPreview(date,nextNumber)})
     }
     if (action === 'configure_public_access') {
-      if(!hasAdminFunction(account,requestSettings,'manageReportPage'))return json({error:'Geen toegang tot deze beheerinstelling'},403)
+      if(!hasAdminFunction(account,requestSettings,'managePublicAccess'))return json({error:'Geen toegang tot deze beheerinstelling'},403)
       const enabled=payload.enabled===true
-      const newWord=normalizeAccessWord(payload.newWord)
+      const rawNewWord=String(payload.newWord||'').trim()
+      const newWord=normalizeAccessWord(rawNewWord)
       let currentHash=String(requestSettings.publicAccessWordHash||'')
       if(newWord){
         if(newWord.length<3)return json({error:'Het maandwoord moet minimaal 3 tekens bevatten'},400)
         currentHash=await accessWordHash(newWord)
         await saveSetting('publicAccessWordHash',currentHash)
+        await saveSetting('publicAccessWordDisplay',rawNewWord)
         await audit(account.name,account.id,'settings','publicAccessWordHash','Maandwoord voor melderspagina gewijzigd')
       }
       if(enabled&&!currentHash)return json({error:'Stel eerst een maandwoord in voordat je de beveiliging aanzet'},400)
@@ -728,9 +732,9 @@ Deno.serve(async (req) => {
     }
     if (action === 'set_setting') {
       const key=String(payload.key)
-      if(key==='publicAccessWordHash'||key==='publicAccessGateEnabled')return json({error:'Gebruik de beveiligingsinstelling op de meldpagina'},400)
+      if(key==='publicAccessWordHash'||key==='publicAccessWordDisplay'||key==='publicAccessGateEnabled')return json({error:'Gebruik Beveiliging melderspagina'},400)
       if(account.role!=='admin'){
-        const reportKeys=new Set(['publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','reportLocationExamples','reportTitleExamples'])
+        const reportKeys=new Set(['publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','reportLocationExamples','reportTitleExamples'])
         let allowed=false
         if(key==='categories')allowed=hasAdminFunction(account,requestSettings,'manageCategories')
         else if(key==='rolePermissions')allowed=hasAdminFunction(account,requestSettings,'manageRolePermissions')
