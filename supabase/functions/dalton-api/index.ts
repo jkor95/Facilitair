@@ -27,6 +27,8 @@ const DEFAULT_ROLE_PERMISSIONS:any = {
 const DEFAULT_SETTINGS:any = {
   showAuditToFacility:false,
   localNotifications:true,
+  publicAccessGateEnabled:false,
+  publicAccessWordHash:'',
   publicOutageOverview:true,
   publicOutageCategories:null,
   publicOutageStatuses:null,
@@ -133,6 +135,29 @@ function randomToken(bytes = 32) {
 async function sha256(text: string) {
   return hex(await crypto.subtle.digest('SHA-256', enc.encode(text)))
 }
+function normalizeAccessWord(value:any){ return String(value||'').normalize('NFKC').trim().toLocaleLowerCase('nl-NL') }
+async function accessWordHash(value:any){ return sha256(`meldpunt-vwo-public-access:v1:${normalizeAccessWord(value)}`) }
+async function createPublicAccessToken(wordHash:string){
+  const iv=crypto.getRandomValues(new Uint8Array(12))
+  const payload=enc.encode(JSON.stringify({h:wordHash,exp:Date.now()+12*60*60*1000}))
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},await masterKey(),payload)
+  return `${b64(iv)}.${b64(new Uint8Array(cipher))}`
+}
+async function verifyPublicAccessToken(token:any,currentHash:string){
+  try{
+    const [ivB64,cipherB64]=String(token||'').split('.')
+    if(!ivB64||!cipherB64)return false
+    const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(ivB64)},await masterKey(),unb64(cipherB64))
+    const data=JSON.parse(dec.decode(plain))
+    return data?.h===currentHash&&Number(data?.exp)>Date.now()
+  }catch{return false}
+}
+async function requirePublicAccess(payload:any,settings:any){
+  if(settings.publicAccessGateEnabled!==true)return
+  const currentHash=String(settings.publicAccessWordHash||'')
+  if(!currentHash)throw new Error('De melderspagina is beveiligd maar er is geen maandwoord ingesteld. Neem contact op met de beheerder.')
+  if(!await verifyPublicAccessToken(payload?.accessToken,currentHash))throw new Error('Geen geldige toegang tot de melderspagina. Vul het maandwoord opnieuw in.')
+}
 async function derivePassword(password: string, saltB64: string) {
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: unb64(saltB64), iterations: 160000, hash: 'SHA-256' }, keyMaterial, 256)
@@ -235,7 +260,7 @@ async function getState(account: any, existingSettings?: any) {
       version: 5.81,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
-      settings: settingsObj, auditLog: [],
+      settings: { ...settingsObj, publicAccessWordHash:undefined, publicAccessWordSet:!!settingsObj.publicAccessWordHash }, auditLog: [],
     }
   }
   const perms = permissionsFor(role, settingsObj)
@@ -310,7 +335,8 @@ async function getState(account: any, existingSettings?: any) {
   }))
   const current = safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : '')
   current.adminFunctions = role === 'admin' ? { ...DEFAULT_ADMIN_FUNCTIONS, ...Object.fromEntries(Object.keys(DEFAULT_ADMIN_FUNCTIONS).map(k=>[k,true])) } : adminFns
-  const clientSettings:any = { ...settingsObj }
+  const clientSettings:any = { ...settingsObj, publicAccessWordSet:!!settingsObj.publicAccessWordHash }
+  delete clientSettings.publicAccessWordHash
   if (role !== 'admin') delete clientSettings.delegatedAdminPermissions
   return {
     version: 5.81,
@@ -529,15 +555,18 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.81 })
+    if (action === 'health') return json({ ok:true, version:5.84 })
     if (action === 'public_config') {
-      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null }
-      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder'])
+      const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null }
+      const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder'])
       for (const row of rows || []) defaults[row.key] = row.value
+      const { data: accessWordRow } = await db.from('dm_settings').select('value').eq('key','publicAccessWordHash').maybeSingle()
+      defaults.publicAccessWordSet=!!accessWordRow?.value
       return json({ ok:true, settings:defaults })
     }
     if (action === 'public_outages') {
       const settings = await loadSettingsObj()
+      await requirePublicAccess(payload,settings)
       if (settings.publicOutageOverview === false) return json({ ok:true, enabled:false, items:[] })
       const allCategories = Array.isArray(settings.categories) ? settings.categories.filter((x:any)=>typeof x==='string'&&x.trim()) : []
       const configuredCategories = Array.isArray(settings.publicOutageCategories) ? settings.publicOutageCategories.filter((x:any)=>typeof x==='string') : null
@@ -568,13 +597,29 @@ Deno.serve(async (req) => {
       })
       return json({ ok:true, enabled:true, items:items.slice(0,100) })
     }
+    if (action === 'validate_public_access_word') {
+      const settings=await loadSettingsObj()
+      if(settings.publicAccessGateEnabled!==true)return json({ok:true,accessToken:''})
+      const currentHash=String(settings.publicAccessWordHash||'')
+      if(!currentHash)return json({error:'Er is nog geen maandwoord ingesteld. Neem contact op met de beheerder.'},503)
+      const candidate=normalizeAccessWord(payload.word)
+      if(!candidate||await accessWordHash(candidate)!==currentHash)return json({error:'Onjuist maandwoord'},401)
+      return json({ok:true,accessToken:await createPublicAccessToken(currentHash)})
+    }
+    if (action === 'validate_public_access_token') {
+      const settings=await loadSettingsObj()
+      if(settings.publicAccessGateEnabled!==true)return json({ok:true})
+      const currentHash=String(settings.publicAccessWordHash||'')
+      if(!currentHash||!await verifyPublicAccessToken(payload.accessToken,currentHash))return json({error:'Toegang verlopen of maandwoord gewijzigd'},401)
+      return json({ok:true})
+    }
     if (action === 'login') {
       const result = await login(payload.username, payload.password)
       if (!result) return json({ error:'Onjuiste inlognaam of wachtwoord' },401)
       return json({ ok:true, ...result })
     }
     if (action === 'setup_password') return json({ ok:true, result: await setupPassword(payload) })
-    if (action === 'public_create_ticket') return json({ ok:true, ticket: await createTicket(payload, null) })
+    if (action === 'public_create_ticket') { const settings=await loadSettingsObj(); await requirePublicAccess(payload,settings); return json({ ok:true, ticket: await createTicket(payload, null) }) }
 
     const rawAccount = await authenticate(req)
     if (!rawAccount) return json({ error:'Sessie verlopen of geen toegang' },401)
@@ -664,10 +709,28 @@ Deno.serve(async (req) => {
       await audit(account.name,account.id,'ticket-numbering',date,`Volgend ticketnummer ingesteld op ${ticketPreview(date,nextNumber)}`)
       return json({ok:true,date,nextNumber,preview:ticketPreview(date,nextNumber)})
     }
+    if (action === 'configure_public_access') {
+      if(!hasAdminFunction(account,requestSettings,'manageReportPage'))return json({error:'Geen toegang tot deze beheerinstelling'},403)
+      const enabled=payload.enabled===true
+      const newWord=normalizeAccessWord(payload.newWord)
+      let currentHash=String(requestSettings.publicAccessWordHash||'')
+      if(newWord){
+        if(newWord.length<3)return json({error:'Het maandwoord moet minimaal 3 tekens bevatten'},400)
+        currentHash=await accessWordHash(newWord)
+        await saveSetting('publicAccessWordHash',currentHash)
+        await audit(account.name,account.id,'settings','publicAccessWordHash','Maandwoord voor melderspagina gewijzigd')
+      }
+      if(enabled&&!currentHash)return json({error:'Stel eerst een maandwoord in voordat je de beveiliging aanzet'},400)
+      await saveSetting('publicAccessGateEnabled',enabled)
+      await audit(account.name,account.id,'settings','publicAccessGateEnabled',enabled?'Beveiliging melderspagina ingeschakeld':'Beveiliging melderspagina uitgeschakeld')
+      const state=await getState(account)
+      return json({ok:true,state})
+    }
     if (action === 'set_setting') {
       const key=String(payload.key)
+      if(key==='publicAccessWordHash'||key==='publicAccessGateEnabled')return json({error:'Gebruik de beveiligingsinstelling op de meldpagina'},400)
       if(account.role!=='admin'){
-        const reportKeys=new Set(['publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','reportLocationExamples','reportTitleExamples'])
+        const reportKeys=new Set(['publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','reportLocationExamples','reportTitleExamples'])
         let allowed=false
         if(key==='categories')allowed=hasAdminFunction(account,requestSettings,'manageCategories')
         else if(key==='rolePermissions')allowed=hasAdminFunction(account,requestSettings,'manageRolePermissions')

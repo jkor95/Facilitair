@@ -1,18 +1,10 @@
-# Meldpunt VWO v5.8.2
+# Meldpunt VWO
 
-> **v5.8.3:** de zichtbare pagina ververst niet meer automatisch tijdens typen/aanvinken. Achtergrondcontrole blijft actief. Voor deze update is alleen GitHub nodig; geen SQL en geen smart-function-update.
+Productieversie **v5.8.4** voor `https://meldpuntvwo.nl/`.
 
+Deze versie voegt een beveiligd maandwoord toe aan de openbare melderspagina. Het woord wordt server-side gecontroleerd en niet openbaar naar de browser gestuurd. Een juiste invoer geeft tijdelijk toegang tot het storingsoverzicht en het meldformulier.
 
-Meldpunt VWO voor Stedelijk Dalton Lyceum Dordrecht. Publieke meldpagina op `https://meldpuntvwo.nl/` met een eigen werkomgeving voor Facilitair en Conciërge en een beheeromgeving voor Hoofdbeheer.
+## Bijwerken vanaf v5.8.3
+Werk de bestaande Supabase Edge Function `smart-function` bij met `supabase/functions/dalton-api/index.ts` en upload daarna de GitHub-bestanden. Er is geen SQL-migratie nodig.
 
-## Nieuw in v5.8.2
-- Hoofdbeheer kan de volgorde van categorieën in **Actuele storingen** handmatig bepalen.
-- De terugkoppelmail bevat de actuele status en interne notitie. Er wordt geen automatische handtekening toegevoegd; de medewerker gebruikt de handtekening uit het eigen mailprogramma.
-- Hoofdbeheer kan per Facilitair- of Conciërge-account specifieke onderdelen van de beheerpagina toekennen.
-- Een medewerker met gedelegeerde rechten krijgt naast het werkoverzicht een knop **Beheer** en ziet alleen de toegekende beheeronderdelen.
-- Gedelegeerd accountbeheer kan geen Hoofdbeheerder-accounts zien, wijzigen of aanmaken.
-
-## Update vanaf v5.8.0
-Geen nieuwe database-migratie. Werk wel de bestaande Supabase `smart-function` bij met `supabase/functions/dalton-api/index.ts` en upload daarna de GitHub-bestanden.
-
-Zie `START-HIER.txt` voor de korte stappen.
+Zie `START-HIER.txt` voor de korte installatievolgorde.

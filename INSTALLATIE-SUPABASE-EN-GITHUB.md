@@ -1,27 +1,12 @@
-# Meldpunt VWO v5.8.2 installeren/updaten
+# Installatie Meldpunt VWO v5.8.4
 
-> **v5.8.3:** de zichtbare pagina ververst niet meer automatisch tijdens typen/aanvinken. Achtergrondcontrole blijft actief. Voor deze update is alleen GitHub nodig; geen SQL en geen smart-function-update.
+## Supabase
+Er is **geen SQL-migratie** nodig. Open de bestaande Edge Function `smart-function`, vervang de volledige inhoud van `index.ts` door `supabase/functions/dalton-api/index.ts` uit deze release en deploy de function opnieuw. `verify_jwt` blijft uit, omdat Meldpunt VWO zijn eigen sessie- en toegangscontrole uitvoert.
 
+## GitHub Pages
+Vervang de websitebestanden in de root van de repository `Facilitair`. Behoud het bestand `CNAME` met `meldpuntvwo.nl`.
 
-## Vanaf v5.8.0
-Voor v5.8.2 is **geen nieuwe SQL-migratie** nodig. De nieuwe categorievolgorde en gedelegeerde beheerrechten worden opgeslagen in de bestaande `dm_settings`-tabel.
+## Maandwoord instellen
+Open als hoofdbeheerder of bevoegde medewerker **Beheer → Meldpagina aanpassen → Beveiliging melderspagina**. Vul een nieuw maandwoord in, zet **Maandwoord verplicht** aan en kies **Meldpagina opslaan**.
 
-### 1. smart-function bijwerken
-Open in Supabase de bestaande Edge Function `smart-function`. Vervang de volledige `index.ts` door:
-
-`supabase/functions/dalton-api/index.ts`
-
-Deploy daarna de function opnieuw. De bestaande eigen sessie/authenticatie blijft ongewijzigd.
-
-### 2. GitHub bijwerken
-Upload/vervang de websitebestanden uit deze release in de root van repository `Facilitair`. Laat `CNAME` aanwezig; deze bevat `meldpuntvwo.nl`.
-
-### 3. Testen
-Open `https://meldpuntvwo.nl/` en controleer als Hoofdbeheerder:
-
-- **Meldpagina aanpassen** -> sortering en handmatige categorievolgorde van Actuele storingen.
-- Een melding met e-mailadres -> **Terugkoppeling mailen**. Het concept bevat status en interne notitie maar geen handtekening.
-- **Beheerfuncties per medewerker** -> wijs een testaccount een beheeronderdeel toe. Log met dat account in en controleer dat alleen het toegewezen onderdeel onder **Beheer** staat.
-
-### Vanaf v5.7.7 of ouder
-Voer eerst eenmalig `supabase/UPGRADE-v5.7.8-EENMALIG.sql` uit voordat je deze versie gebruikt.
+Het maandwoord is niet hoofdlettergevoelig. Het openbare formulier en het storingsoverzicht worden server-side afgeschermd. Na een juiste invoer geldt de toegang maximaal 12 uur binnen de huidige browsersessie; een nieuw maandwoord trekt bestaande toegang automatisch in.

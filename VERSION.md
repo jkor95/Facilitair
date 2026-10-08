@@ -1,37 +1,20 @@
-# Meldpunt VWO v5.8.3
+# Meldpunt VWO v5.8.4
 
-Hotfix voor ongewenst automatisch vernieuwen tijdens typen, aanvinken en bewerken.
-
-## Nieuw in v5.8.3
-- De 30-seconden achtergrondcontrole haalt nog wel nieuwe gegevens op voor meldingen en badges, maar bouwt de zichtbare pagina niet meer automatisch opnieuw op.
-- Ingevulde tekst, selecties en vinkjes blijven daardoor staan totdat de gebruiker zelf opslaat of het scherm afsluit.
-- Bij bewust sluiten van een dialoog wordt de actuele serverstatus opgehaald en de pagina daarna opnieuw opgebouwd.
-- Handmatig **Vernieuwen** blijft direct verversen.
-- Geen SQL-migratie en geen smart-function-update nodig.
-
-Backend/API-versie: 5.81. Frontend/PWA-cache: 5.8.3.
-
----
-
-# Meldpunt VWO v5.8.2
-
-Uitbreiding van melderspagina, terugkoppelmail en gedelegeerde beheerrechten.
+Nieuwe beveiliging voor de openbare melderspagina.
 
 ## Nieuw
-- Hoofdbeheer kan de categorievolgorde van Actuele storingen op de melderspagina handmatig sorteren.
-- Terugkoppelmail bevat de huidige status en interne notitie, maar geen automatische handtekening.
-- Hoofdbeheer kan per Facilitair- of Conciërge-account specifieke beheerfuncties toekennen.
-- Gedelegeerde medewerkers krijgen een aparte knop **Beheer** en zien alleen de toegewezen onderdelen.
-- Hoofdbeheerder-accounts blijven voor gedelegeerd accountbeheer afgeschermd.
+- De melderspagina kan worden beveiligd met een handmatig ingesteld **maandwoord**.
+- Alleen na een juist maandwoord wordt de openbare meldpagina geopend.
+- Het maandwoord is **niet hoofdlettergevoelig**.
+- Hoofdbeheer en medewerkers met de gedelegeerde beheerfunctie **Meldpagina aanpassen** kunnen het maandwoord wijzigen en de beveiliging aan/uit zetten.
+- Het maandwoord zelf wordt niet naar de openbare website gestuurd; alleen een hash wordt centraal opgeslagen.
+- Na een correcte invoer krijgt het apparaat een tijdelijke toegang voor maximaal 12 uur binnen de huidige browsersessie.
+- Zodra het maandwoord wordt gewijzigd, worden eerder uitgegeven toegangen automatisch ongeldig.
+- Zowel het openbare storingsoverzicht als het versturen van een nieuwe melding worden server-side geblokkeerd zonder geldige toegang.
 
-## Installatie vanaf v5.8.0
-Geen SQL-migratie nodig. Werk de bestaande smart-function bij met `supabase/functions/dalton-api/index.ts` en vervang daarna de GitHub-bestanden.
+## Installatie vanaf v5.8.3
+- Geen SQL-migratie nodig.
+- Werk de bestaande `smart-function` bij met `supabase/functions/dalton-api/index.ts`.
+- Vervang daarna de GitHub-bestanden door deze versie.
 
-Backend/API-versie: 5.81. Frontend/PWA-cache: 5.8.2.
-
-
-## v5.8.2
-- Hotfix voor opslaan van Meldpagina aanpassen wanneer categorie/statusfilters op alle staan.
-- Null-instellingen vallen terug op standaard in plaats van een ongeldige databasewaarde op te slaan.
-- Duidelijkere foutmeldingen in plaats van [object Object].
-- Geen SQL-migratie nodig; GitHub + smart-function bijwerken.
+Backend/API-versie: 5.84. Frontend/PWA-cache: 5.8.4.
