@@ -1,14 +1,16 @@
-MELDPUNT VWO v5.8.9
+MELDPUNT VWO v5.8.10
 
-Vanaf v5.8.8:
+Deze versie is een GitHub/frontend-hotfix.
 
-1. GITHUB
-   - Vervang/upload de websitebestanden uit deze map naar de root van repository Facilitair.
-   - Laat CNAME staan; deze bevat meldpuntvwo.nl.
+AANPASSEN:
+1. Upload/vervang de GitHub-bestanden met de inhoud van deze map.
 
-2. SUPABASE
-   - Geen SQL uitvoeren.
-   - smart-function NIET aanpassen voor deze versie.
+NIET NODIG:
+- Geen SQL uitvoeren.
+- De bestaande Supabase smart-function niet aanpassen.
 
-3. WIJZIGING
-   - Op het scherm Toegang personeel heet Maandwoord voortaan Toegangswoord.
+Wijziging:
+- De Locatietekst in de beheerinstellingen kan nu volledig leeg worden opgeslagen.
+- Bij een lege Locatietekst wordt die tekstregel op de melderspagina niet getoond.
+
+Website: https://meldpuntvwo.nl/

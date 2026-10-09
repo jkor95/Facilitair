@@ -1,19 +1,19 @@
-> **v5.8.9:** dit is alleen een GitHub/frontend-update. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+> **v5.8.10:** alleen GitHub/frontend aanpassen. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
 
 # Meldpunt VWO
 
-Productieversie **v5.8.9** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.10** voor `https://meldpuntvwo.nl/`.
 
 ## Deze release
 
-- Meldingstitel aanpasbaar voor Hoofdbeheerder en voor Facilitair/Conciërge met het juiste rolrecht.
-- Leesbare wijzigingsgeschiedenis: statussen en toewijzingen worden als normale tekst/namen getoond.
-- Openbare melderspagina standaard: groen informatievlak -> Actuele meldingen -> meldformulier.
-- Volgorde van deze drie onderdelen instelbaar door beheer.
-- Instellingen voor het groene informatievlak en voor Actuele meldingen zijn gescheiden en apart delegeerbaar.
+Hotfix voor **Locatietekst** onder *Meldpagina: groen informatievlak & voorbeelden*:
+
+- de tekst mag nu volledig leeg worden opgeslagen;
+- een lege waarde wordt niet meer automatisch vervangen door de standaardtekst;
+- als de Locatietekst leeg is, wordt die regel op de openbare melderspagina niet weergegeven.
 
 ## Installatie
 
 Zie `START-HIER.txt` en `INSTALLATIE-SUPABASE-EN-GITHUB.md`.
 
-Geen SQL nodig. Voor v5.8.9 moet wel de bestaande `smart-function` worden bijgewerkt en daarna moeten de GitHub-bestanden worden vervangen.
+Voor v5.8.10 hoef je alleen de GitHub-bestanden te vervangen. Geen SQL en geen wijziging aan de `smart-function`.

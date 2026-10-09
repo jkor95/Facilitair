@@ -1,39 +1,32 @@
-> **v5.8.9:** dit is alleen een GitHub/frontend-update. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+> **v5.8.10:** alleen GitHub/frontend aanpassen. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
 
-# Installatie Meldpunt VWO v5.8.9
+# Installatie Meldpunt VWO v5.8.10
 
-Deze release gebruikt dezelfde database als v5.8.7. **Er is geen SQL-migratie nodig.**
+Deze release is een kleine frontend-hotfix voor de instelling **Locatietekst**.
 
-## 1. Supabase - alleen smart-function bijwerken
+## 1. GitHub Pages
 
-Open in het bestaande Supabase-project de Edge Function `smart-function`.
-Vervang de volledige code door:
-
-`supabase/functions/dalton-api/index.ts`
-
-Deploy daarna de bestaande function opnieuw. De function blijft dezelfde URL gebruiken.
-
-Deze backendwijziging is in deze release noodzakelijk omdat het wijzigen van de meldingstitel server-side gecontroleerd wordt en omdat het beheerrecht voor **Actuele meldingen** apart wordt afgedwongen.
-
-## 2. GitHub Pages
-
-Upload/vervang daarna de bestanden uit deze release in de root van de GitHub-repository `Facilitair`.
+Upload/vervang de bestanden uit deze release in de root van de GitHub-repository `Facilitair`.
 
 Behoud `CNAME` met:
 
 `meldpuntvwo.nl`
 
+## 2. Supabase
+
+Voor v5.8.10 hoef je niets in Supabase te wijzigen:
+
+- geen SQL uitvoeren;
+- `smart-function` niet opnieuw deployen;
+- bestaande database en instellingen blijven behouden.
+
 ## 3. Controle
 
-Controleer na deploy:
+Controleer na de GitHub-deploy:
 
-- een melding openen en de titel wijzigen;
-- de wijzigingsgeschiedenis bekijken bij een bestaande melding met een toewijzingswijziging;
-- Beheer -> Rollen & rechten -> **Titel melding wijzigen**;
-- Beheer -> **Meldpagina: groen informatievlak & voorbeelden**;
-- Beheer -> **Actuele meldingen: overzicht, filters & volgorde**;
-- op de melderspagina: groen informatievlak, daarna ingeklapte Actuele meldingen, daarna het meldformulier.
-
-## 4. Geen SQL
-
-Voer voor v5.8.9 geen SQL-bestand uit. Bestaande meldingen en instellingen blijven behouden.
+1. Log in als beheerder.
+2. Open **Meldpagina: groen informatievlak & voorbeelden**.
+3. Maak **Locatietekst** volledig leeg.
+4. Klik op **Groene vlak & voorbeelden opslaan**.
+5. Open/vernieuw de melderspagina.
+6. De locatietekst hoort nu volledig verdwenen te zijn en mag na opnieuw openen van de beheerinstellingen niet terugkomen.
