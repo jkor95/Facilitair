@@ -1,6 +1,8 @@
+> **v5.8.9:** dit is alleen een GitHub/frontend-update. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+
 # Meldpunt VWO
 
-Productieversie **v5.8.8** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.9** voor `https://meldpuntvwo.nl/`.
 
 ## Deze release
 
@@ -14,4 +16,4 @@ Productieversie **v5.8.8** voor `https://meldpuntvwo.nl/`.
 
 Zie `START-HIER.txt` en `INSTALLATIE-SUPABASE-EN-GITHUB.md`.
 
-Geen SQL nodig. Voor v5.8.8 moet wel de bestaande `smart-function` worden bijgewerkt en daarna moeten de GitHub-bestanden worden vervangen.
+Geen SQL nodig. Voor v5.8.9 moet wel de bestaande `smart-function` worden bijgewerkt en daarna moeten de GitHub-bestanden worden vervangen.

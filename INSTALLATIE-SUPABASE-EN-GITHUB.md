@@ -1,4 +1,6 @@
-# Installatie Meldpunt VWO v5.8.8
+> **v5.8.9:** dit is alleen een GitHub/frontend-update. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+
+# Installatie Meldpunt VWO v5.8.9
 
 Deze release gebruikt dezelfde database als v5.8.7. **Er is geen SQL-migratie nodig.**
 
@@ -34,4 +36,4 @@ Controleer na deploy:
 
 ## 4. Geen SQL
 
-Voer voor v5.8.8 geen SQL-bestand uit. Bestaande meldingen en instellingen blijven behouden.
+Voer voor v5.8.9 geen SQL-bestand uit. Bestaande meldingen en instellingen blijven behouden.
