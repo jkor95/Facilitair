@@ -1,11 +1,12 @@
-MELDPUNT VWO v5.8.7
+MELDPUNT VWO v5.8.8
 
-Vanaf v5.8.6:
+Vanaf v5.8.7:
 
 1. SUPABASE
    - Geen SQL uitvoeren.
+   - Deze versie heeft WEL een noodzakelijke smart-function wijziging, omdat het wijzigen van de meldingstitel server-side beveiligd moet worden en de nieuwe beheerrechten centraal gelden.
    - Open de bestaande Edge Function `smart-function`.
-   - Vervang de inhoud van index.ts door:
+   - Vervang de volledige inhoud van index.ts door:
      supabase/functions/dalton-api/index.ts
    - Deploy de bestaande function opnieuw.
 
@@ -13,12 +14,17 @@ Vanaf v5.8.6:
    - Vervang/upload de websitebestanden uit deze map naar de root van repository Facilitair.
    - Laat CNAME staan; deze bevat meldpuntvwo.nl.
 
-3. MELDERSPAGINA
-   - De groene navigatieknop `Melding maken` boven het formulier is verwijderd.
-   - `Actuele storingen` heet voortaan `Actuele meldingen`.
-   - Een geldig maandwoord blijft 12 uur geldig, ook als de mobiele webapp wordt afgesloten en opnieuw geopend.
-   - Bij opnieuw openen worden de actuele meldingen opnieuw geladen.
+3. NIEUW
+   - Facilitair, Conciërge en Hoofdbeheerder kunnen de titel van een melding aanpassen.
+   - In Rollen & rechten is `Titel melding wijzigen` apart instelbaar voor Facilitair en Conciërge.
+   - Wijzigingsgeschiedenis toont statussen en toewijzingen leesbaar in plaats van interne codes/UUID's.
+   - Bestaande oude geschiedenis met UUID's wordt waar mogelijk direct vertaald naar de naam van de medewerker.
+   - De openbare melderspagina staat standaard in de volgorde:
+     groen informatievlak -> Actuele meldingen (ingeklapt) -> meldformulier.
+   - De hoofdbeheerder kan deze drie onderdelen zelf in een andere volgorde zetten.
+   - `Meldpagina: groen informatievlak & voorbeelden` en `Actuele meldingen: overzicht, filters & volgorde` zijn aparte beheeronderdelen.
+   - Deze twee beheeronderdelen kunnen ook apart aan Facilitair/Conciërge worden toegewezen.
 
-4. INLOGGEN
-   - De kleine knop `Inloggen` bovenaan blijft altijd bereikbaar zonder maandwoord.
-
+4. DATABASE
+   - Geen SQL-migratie nodig.
+   - Bestaande meldingen, accounts en instellingen blijven behouden.

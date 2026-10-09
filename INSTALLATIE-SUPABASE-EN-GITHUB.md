@@ -1,21 +1,37 @@
-# Installatie Meldpunt VWO v5.8.7
+# Installatie Meldpunt VWO v5.8.8
 
-## 1. Supabase
-Er is voor deze versie **geen SQL-migratie** nodig.
+Deze release gebruikt dezelfde database als v5.8.7. **Er is geen SQL-migratie nodig.**
 
-Open in Supabase de bestaande Edge Function **smart-function**. Vervang de volledige inhoud van `index.ts` door:
+## 1. Supabase - alleen smart-function bijwerken
+
+Open in het bestaande Supabase-project de Edge Function `smart-function`.
+Vervang de volledige code door:
 
 `supabase/functions/dalton-api/index.ts`
 
-Deploy daarna dezelfde function opnieuw. De naam en URL blijven ongewijzigd.
+Deploy daarna de bestaande function opnieuw. De function blijft dezelfde URL gebruiken.
+
+Deze backendwijziging is in deze release noodzakelijk omdat het wijzigen van de meldingstitel server-side gecontroleerd wordt en omdat het beheerrecht voor **Actuele meldingen** apart wordt afgedwongen.
 
 ## 2. GitHub Pages
-Upload/vervang daarna de websitebestanden in de root van de bestaande repository. Het bestand `CNAME` moet blijven staan en bevat `meldpuntvwo.nl`.
 
-## 3. Wat verandert
-- De groene navigatieknop **Melding maken** boven de melderspagina is verwijderd.
-- **Actuele storingen** heet voortaan **Actuele meldingen**.
-- Een geldig maandwoord blijft maximaal 12 uur geldig, ook na afsluiten en opnieuw openen van de mobiele webapp.
-- Bij opnieuw openen wordt de toegang gecontroleerd en worden de actuele meldingen opnieuw opgehaald.
-- Na 12 uur, of zodra het maandwoord wordt gewijzigd, moet opnieuw het maandwoord worden ingevoerd.
-- De kleine knop **Inloggen** bovenaan blijft altijd toegankelijk zonder maandwoord.
+Upload/vervang daarna de bestanden uit deze release in de root van de GitHub-repository `Facilitair`.
+
+Behoud `CNAME` met:
+
+`meldpuntvwo.nl`
+
+## 3. Controle
+
+Controleer na deploy:
+
+- een melding openen en de titel wijzigen;
+- de wijzigingsgeschiedenis bekijken bij een bestaande melding met een toewijzingswijziging;
+- Beheer -> Rollen & rechten -> **Titel melding wijzigen**;
+- Beheer -> **Meldpagina: groen informatievlak & voorbeelden**;
+- Beheer -> **Actuele meldingen: overzicht, filters & volgorde**;
+- op de melderspagina: groen informatievlak, daarna ingeklapte Actuele meldingen, daarna het meldformulier.
+
+## 4. Geen SQL
+
+Voer voor v5.8.8 geen SQL-bestand uit. Bestaande meldingen en instellingen blijven behouden.
