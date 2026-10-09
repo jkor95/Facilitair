@@ -1,21 +1,15 @@
-# Meldpunt VWO v5.8.6
+# Meldpunt VWO v5.8.7
 
-Beveiliging melderspagina is losgetrokken van **Meldpagina aanpassen**.
+## Aangepast
+- De groene knop **Melding maken** boven de openbare melderspagina is verwijderd.
+- **Actuele storingen** is hernoemd naar **Actuele meldingen**.
+- De 12-uurs toegang na een correct maandwoord blijft nu betrouwbaar bewaard wanneer de mobiele webapp wordt afgesloten en opnieuw geopend.
+- Bij opnieuw openen wordt de toegang server-side gecontroleerd en wordt het overzicht **Actuele meldingen** opnieuw geladen.
+- De kleine knop **Inloggen** bovenaan blijft altijd beschikbaar zonder maandwoord.
 
-## Nieuw
-- **Beveiliging melderspagina** staat als eigen inklapbaar beheeronderdeel op de beheerpagina.
-- Het beheerrecht **Beveiliging melderspagina** kan afzonderlijk aan een Facilitair- of Conciërge-medewerker worden toegewezen.
-- Het huidige maandwoord wordt in dit onderdeel zichtbaar getoond aan de hoofdbeheerder en aan medewerkers die specifiek dit beheerrecht hebben.
-- Het maandwoord blijft niet hoofdlettergevoelig.
-- Inloggen voor Facilitair, Conciërge en hoofdbeheer is altijd mogelijk zonder maandwoord.
-- Op het maandwoordscherm staat hiervoor nu ook een aparte knop **Facilitair / Conciërge inloggen**.
-
-## Eenmalig na deze update
-Het maandwoord uit v5.8.4 was alleen als hash opgeslagen en kan daarom niet worden teruggelezen. Als er al een maandwoord actief was, staat er na de update dat het woord uit de eerdere versie niet beschikbaar is. Stel één keer opnieuw hetzelfde of een nieuw maandwoord in. Vanaf dat moment is het huidige maandwoord zichtbaar in het beveiligingsonderdeel.
-
-## Installatie vanaf v5.8.4
+## Technisch
+- De tijdelijke openbare toegang wordt lokaal bewaard, maar blijft server-side maximaal 12 uur geldig en vervalt direct zodra het maandwoord wordt gewijzigd.
+- `public_config` geeft nu ook correct door of de maandwoordbeveiliging is ingeschakeld.
 - Geen SQL-migratie nodig.
-- Werk de bestaande `smart-function` bij met `supabase/functions/dalton-api/index.ts`.
-- Vervang daarna de GitHub-bestanden door deze versie.
 
-Backend/API-versie: 5.85. Frontend/PWA-cache: 5.8.6.
+Backend/API-versie: 5.87. Frontend/PWA-cache: 5.8.7.

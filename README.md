@@ -1,14 +1,14 @@
 # Meldpunt VWO
 
-Productieversie **v5.8.6** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.7** voor `https://meldpuntvwo.nl/`.
 
-In deze versie staat **Beveiliging melderspagina** als zelfstandig beheeronderdeel. Het recht om het maandwoord te bekijken/wijzigen kan afzonderlijk worden toegekend aan Facilitair- of Conciërge-medewerkers.
+Deze versie verbetert de openbare melderspagina. De losse groene knop **Melding maken** boven het formulier is verwijderd en het overzicht heet voortaan **Actuele meldingen**.
 
-Inloggen voor medewerkers en hoofdbeheer blijft altijd bereikbaar zonder maandwoord. Het maandwoord is alleen nodig voor de openbare melderspagina.
+Na een correct maandwoord blijft de toegang maximaal 12 uur geldig, ook wanneer de mobiele webapp wordt afgesloten en opnieuw geopend. De backend controleert bij openen of die toegang nog geldig is; na 12 uur of na wijziging van het maandwoord wordt opnieuw om het maandwoord gevraagd.
 
-## Bijwerken vanaf v5.8.4
+Bij opnieuw openen worden de actuele meldingen opnieuw opgehaald. De kleine knop **Inloggen** bovenaan blijft altijd bereikbaar zonder maandwoord.
+
+## Bijwerken vanaf v5.8.6
 Werk de bestaande Supabase Edge Function `smart-function` bij met `supabase/functions/dalton-api/index.ts` en upload daarna de GitHub-bestanden. Er is geen SQL-migratie nodig.
-
-**Let op:** een maandwoord dat al in v5.8.4 was ingesteld kan technisch niet uit de oude hash worden teruggelezen. Stel het na deze update één keer opnieuw in. Daarna wordt het actuele woord zichtbaar in het aparte beveiligingsonderdeel.
 
 Zie `START-HIER.txt` voor de korte installatievolgorde.

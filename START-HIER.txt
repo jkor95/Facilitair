@@ -1,6 +1,6 @@
-MELDPUNT VWO v5.8.6
+MELDPUNT VWO v5.8.7
 
-Vanaf v5.8.4:
+Vanaf v5.8.6:
 
 1. SUPABASE
    - Geen SQL uitvoeren.
@@ -13,17 +13,12 @@ Vanaf v5.8.4:
    - Vervang/upload de websitebestanden uit deze map naar de root van repository Facilitair.
    - Laat CNAME staan; deze bevat meldpuntvwo.nl.
 
-3. BEVEILIGING MELDERSPAGINA
-   - Log in als hoofdbeheerder.
-   - Open het aparte onderdeel `Beveiliging melderspagina`.
-   - Als er al een maandwoord uit v5.8.4 actief was: vul het één keer opnieuw in en sla op.
-     De oude versie bewaarde alleen een hash, waardoor dat bestaande woord niet kan worden teruggelezen.
-   - Vanaf nu wordt het actuele maandwoord in dit onderdeel zichtbaar getoond.
-   - Het maandwoord is niet hoofdlettergevoelig.
+3. MELDERSPAGINA
+   - De groene navigatieknop `Melding maken` boven het formulier is verwijderd.
+   - `Actuele storingen` heet voortaan `Actuele meldingen`.
+   - Een geldig maandwoord blijft 12 uur geldig, ook als de mobiele webapp wordt afgesloten en opnieuw geopend.
+   - Bij opnieuw openen worden de actuele meldingen opnieuw geladen.
 
-4. BEHEERRECHT UITDELEN
-   - Open `Beheerfuncties per medewerker`.
-   - Vink per gewenste Facilitair- of Conciërge-medewerker `Beveiliging melderspagina` aan.
-   - Die medewerker kan dan alleen dit onderdeel beheren als geen andere beheerfuncties zijn toegekend.
+4. INLOGGEN
+   - De kleine knop `Inloggen` bovenaan blijft altijd bereikbaar zonder maandwoord.
 
-Inloggen voor Facilitair, Conciërge en hoofdbeheer is altijd mogelijk zonder maandwoord.
