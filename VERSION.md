@@ -1,16 +1,14 @@
-# Meldpunt VWO v5.8.17
+# Meldpunt VWO v5.8.18
 
-## Wijzigingen
-- Interne meldingen kunnen worden verborgen uit **Actuele meldingen** op de melderspagina.
-- Facilitair en Conciërge krijgen bij het maken van een melding een vinkje **Tonen bij Actuele meldingen op de melderspagina**. Dit staat standaard uit.
-- In de detailweergave van iedere melding kunnen Facilitair, Conciërge en Hoofdbeheerder deze zichtbaarheid later wijzigen.
-- Meldingen die via de openbare melderspagina worden gedaan met de voornaam of volledige naam van een actief Facilitair/Conciërge-account worden automatisch als intern behandeld. Naamvergelijking is niet hoofdlettergevoelig.
-- De openbare dubbele-meldingcontrole laat interne meldingen niet zien.
-- Bestaande meldingen van actieve Facilitair/Conciërge-accounts worden bij de eenmalige upgrade automatisch verborgen op basis van voornaam of volledige naam.
+## Fix personeels-overzicht
+- Facilitair en Conciërge zien onder **Alle meldingen** weer daadwerkelijk de volledige lijst die bovenaan wordt geteld.
+- Een melding zonder ingevulde toelichting/omschrijving kan de hele lijst niet meer laten vastlopen.
+- Ook ontbrekende optionele velden in oudere meldingen worden veilig weergegeven.
+- De bestaande rechten blijven gelden: **Alle meldingen bekijken en openen** bepaalt of het overzicht zichtbaar is; bewerkrechten bepalen wat gewijzigd mag worden.
 
 ## Installatie
-1. Voer `supabase/UPGRADE-v5.8.17-EENMALIG.sql` eenmalig uit.
-2. Vervang daarna de bestaande `smart-function` door `supabase/functions/dalton-api/index.ts`.
-3. Werk daarna GitHub bij met de bestanden uit deze versie.
+Alleen GitHub bijwerken met deze versie.
 
-Frontend/PWA-cache: 5.8.17.
+Geen nieuwe SQL nodig en `smart-function` hoeft ten opzichte van v5.8.17 niet opnieuw aangepast te worden.
+
+Frontend/PWA-cache: 5.8.18.
