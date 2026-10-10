@@ -1,17 +1,11 @@
-MELDPUNT VWO v5.8.11
+MELDPUNT VWO v5.8.12
 
-Deze versie bevat planning en nieuwe serverfunctionaliteit. Daarom zijn deze keer 3 stappen nodig:
+UPDATE VANAF v5.8.11
 
-1. SUPABASE SQL
-   Voer EEN KEER uit:
-   supabase/UPGRADE-v5.8.11-EENMALIG.sql
+Alleen GitHub bijwerken met de bestanden uit deze ZIP.
 
-2. SUPABASE SMART-FUNCTION
-   Vervang de code van je bestaande smart-function door:
-   supabase/functions/dalton-api/index.ts
-   en deploy de functie.
+NIET NODIG:
+- geen SQL uitvoeren;
+- geen smart-function aanpassen.
 
-3. GITHUB
-   Upload/vervang daarna de websitebestanden uit deze ZIP in je repository.
-
-Geen bestaande meldingen, accounts of instellingen worden verwijderd.
+Nieuw: Facilitair/Conciërge kan in Weekoverzicht planning zelf 7, 14 of 31 dagen vooruit kijken.

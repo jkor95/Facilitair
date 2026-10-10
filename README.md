@@ -1,24 +1,23 @@
-> **v5.8.11:** GitHub + smart-function + één kleine eenmalige SQL-upgrade.
-
 # Meldpunt VWO
 
-Productieversie **v5.8.11** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.12** voor `https://meldpuntvwo.nl/`.
 
-## Nieuw
+## Nieuw in v5.8.12
 
-- dubbele melding herkennen tijdens het melden;
-- geplande uitvoerdatum per melding;
-- planning voor Facilitair/Conciërge;
-- snelle acties op meldingskaarten;
-- afgeronde melding heropenen;
-- Nieuw/Gewijzigd sinds laatste bezoek;
-- Mijn werk vandaag;
-- medewerkersoverzicht met actuele werkverdeling.
+Voor Facilitair en Conciërge staat op de werkpagina nu een **Weekoverzicht planning**. Iedere medewerker kan op het eigen apparaat kiezen hoeveel vooruit wordt gekeken:
 
-## Installatie vanaf v5.8.10
+- 7 dagen;
+- 14 dagen;
+- 31 dagen.
 
-1. Voer `supabase/UPGRADE-v5.8.11-EENMALIG.sql` één keer uit.
-2. Werk de bestaande `smart-function` bij met `supabase/functions/dalton-api/index.ts`.
-3. Upload/vervang de GitHub-bestanden.
+De planning toont alleen open/niet-afgeronde meldingen met een geplande uitvoerdatum binnen die periode en groepeert ze per dag. De keuze wordt lokaal per account onthouden.
 
-De extra SQL is deze keer echt nodig omdat een geplande uitvoerdatum persistent bij een melding moet worden opgeslagen. Er wordt slechts één kolom en één index toegevoegd; bestaande data blijven intact.
+## Installatie vanaf v5.8.11
+
+Alleen de GitHub-bestanden uploaden/vervangen.
+
+- Geen SQL uitvoeren.
+- De `smart-function` niet aanpassen.
+- Bestaande meldingen, geplande uitvoerdatums, accounts en instellingen blijven behouden.
+
+De map `supabase` blijft in het pakket aanwezig als referentie voor de bestaande installatie van v5.8.11, maar bevat voor v5.8.12 geen nieuwe vereiste wijziging.

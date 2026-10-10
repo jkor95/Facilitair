@@ -85,3 +85,10 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 
 /* v5.8.11 planning, snelle acties en nieuw-sinds-laatste-bezoek */
 .ticket-quick-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid #edf1f2}.btn.micro{padding:6px 9px;font-size:11px;border-radius:9px}.chip.new-item{background:#dff7ee;color:#087a55}.chip.changed-item{background:#eef2ff;color:#3e4bb0}.planned-overdue{color:#b42318;font-weight:700}.planned-today{color:#087a55;font-weight:700}.planning-group{margin-bottom:18px}.planning-group:last-child{margin-bottom:0}.planning-group h4{margin:0 0 8px}.team-overview{display:grid;gap:9px}.team-row{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fbfcfc}.team-counts{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}.team-counts span{font-size:11px;background:#eef3f4;border-radius:999px;padding:4px 7px}.duplicate-hint{margin:8px 0 12px}.duplicate-warning{border:1px solid #f2c94c;background:#fff9df;border-radius:12px;padding:12px;color:#5e4b00}.duplicate-warning p{margin:4px 0 8px}.duplicate-item{padding:8px 0;border-top:1px solid #eadb96}.duplicate-item:first-of-type{border-top:0}.kpis{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
+
+/* v5.8.12 weekoverzicht planning */
+.planning-range-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.planning-range-label select{width:auto;min-width:120px}
+.planning-window-summary{margin:10px 0 14px;padding:10px 12px;background:#f4f8f8;border:1px solid var(--line);border-radius:12px;color:#315b58;font-size:13px}
+.planning-day{margin:0 0 18px}.planning-day:last-child{margin-bottom:0}.planning-day-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--line)}.planning-day-head h4{margin:0;text-transform:capitalize}
+@media(max-width:850px){.planning-range-label{width:100%;justify-content:space-between}.planning-range-label select{min-width:140px}}
