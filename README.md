@@ -1,15 +1,8 @@
 # Meldpunt VWO
 
-Productieversie **v5.8.13** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.14** voor `https://meldpuntvwo.nl/`.
 
-## Nieuw in v5.8.13
-De werkpagina van Facilitair/Conciërge is vereenvoudigd. Onderdelen zijn inklapbaar, planning staat nog maar op één plek en de beheerder kan per rol bepalen welke werkonderdelen zichtbaar zijn.
+## Nieuw in v5.8.14
+Het onderdeel **Meldingen** op de werkpagina van Facilitair/Conciërge toont standaard direct alle meldingen die de medewerker volgens de ingestelde rolrechten mag bekijken. De zoekbalk is verwijderd. Filters blijven als optionele weergave beschikbaar.
 
-## Update vanaf v5.8.12
-Upload/vervang alleen de GitHub-bestanden uit dit pakket.
-
-- Geen SQL uitvoeren.
-- `smart-function` niet aanpassen.
-- Bestaande accounts, rechten, meldingen en planning blijven behouden.
-
-De map `supabase` blijft aanwezig als referentie voor de bestaande installatie.
+Deze versie is GitHub-only. Geen SQL en geen wijziging van de smart-function nodig.

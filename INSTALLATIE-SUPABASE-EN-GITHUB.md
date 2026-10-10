@@ -1,17 +1,9 @@
-# Installatie Meldpunt VWO v5.8.13
+# Installatie Meldpunt VWO v5.8.14
 
-Deze versie is een **GitHub-only update**.
+Vanaf v5.8.13 hoeft voor deze update alleen GitHub bijgewerkt te worden.
 
-## GitHub
-Upload/vervang de websitebestanden uit dit pakket in de repository van Meldpunt VWO.
+- Geen SQL uitvoeren.
+- De bestaande smart-function niet wijzigen.
+- Upload/vervang de GitHub-bestanden uit deze map.
 
-## Supabase
-Voor v5.8.13 hoef je niets te wijzigen:
-- geen SQL;
-- geen nieuwe migratie;
-- bestaande `smart-function` niet vervangen.
-
-De Supabase-map in het pakket blijft alleen aanwezig als referentie voor de bestaande installatie.
-
-## Na publicatie
-Open `https://meldpuntvwo.nl/`. De PWA-cache is verhoogd naar 5.8.13.
+Open daarna `https://meldpuntvwo.nl/`. De PWA-cache is verhoogd naar 5.8.14.

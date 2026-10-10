@@ -1,17 +1,7 @@
-MELDPUNT VWO v5.8.13
+MELDPUNT VWO v5.8.14
 
-UPDATE VANAF v5.8.12
+ALLEEN GITHUB BIJWERKEN.
+Geen SQL uitvoeren.
+Smart-function niet aanpassen.
 
-1. Upload/vervang de bestanden in GitHub.
-2. Wacht tot GitHub Pages opnieuw is gepubliceerd.
-3. Open https://meldpuntvwo.nl/
-
-NIET NODIG:
-- Geen SQL uitvoeren.
-- smart-function niet aanpassen.
-
-NIEUW:
-- overzichtelijkere Facilitair/Conciërge werkpagina;
-- alle werkonderdelen inklapbaar;
-- planning nog maar op een centrale plek;
-- beheerder kiest per rol welke werkonderdelen zichtbaar zijn.
+Na upload: https://meldpuntvwo.nl/
