@@ -1,17 +1,17 @@
-# Installatie Meldpunt VWO v5.8.12
+# Installatie Meldpunt VWO v5.8.13
 
-Deze versie is een **GitHub-only update** bovenop v5.8.11.
+Deze versie is een **GitHub-only update**.
 
-## Wat moet je doen?
+## GitHub
+Upload/vervang de websitebestanden uit dit pakket in de repository van Meldpunt VWO.
 
-1. Upload/vervang de nieuwe websitebestanden in de GitHub-repository van Meldpunt VWO.
-2. Controleer daarna `https://meldpuntvwo.nl/`.
-3. Als een apparaat nog de vorige versie toont, sluit de webapp/browser volledig en open deze opnieuw.
+## Supabase
+Voor v5.8.13 hoef je niets te wijzigen:
+- geen SQL;
+- geen nieuwe migratie;
+- bestaande `smart-function` niet vervangen.
 
-## Wat hoeft niet?
+De Supabase-map in het pakket blijft alleen aanwezig als referentie voor de bestaande installatie.
 
-- Geen SQL uitvoeren.
-- Geen Supabase-tabellen aanpassen.
-- De bestaande `smart-function` niet vervangen.
-
-De reeds in v5.8.11 opgeslagen geplande uitvoerdatum wordt door het nieuwe weekoverzicht gebruikt.
+## Na publicatie
+Open `https://meldpuntvwo.nl/`. De PWA-cache is verhoogd naar 5.8.13.

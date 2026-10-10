@@ -1,11 +1,17 @@
-MELDPUNT VWO v5.8.12
+MELDPUNT VWO v5.8.13
 
-UPDATE VANAF v5.8.11
+UPDATE VANAF v5.8.12
 
-Alleen GitHub bijwerken met de bestanden uit deze ZIP.
+1. Upload/vervang de bestanden in GitHub.
+2. Wacht tot GitHub Pages opnieuw is gepubliceerd.
+3. Open https://meldpuntvwo.nl/
 
 NIET NODIG:
-- geen SQL uitvoeren;
-- geen smart-function aanpassen.
+- Geen SQL uitvoeren.
+- smart-function niet aanpassen.
 
-Nieuw: Facilitair/Conciërge kan in Weekoverzicht planning zelf 7, 14 of 31 dagen vooruit kijken.
+NIEUW:
+- overzichtelijkere Facilitair/Conciërge werkpagina;
+- alle werkonderdelen inklapbaar;
+- planning nog maar op een centrale plek;
+- beheerder kiest per rol welke werkonderdelen zichtbaar zijn.

@@ -1,18 +1,23 @@
-# Meldpunt VWO v5.8.12
+# Meldpunt VWO v5.8.13
 
-Nieuwe frontendfunctie voor Facilitair en Conciërge:
+## Nieuw
+- Werkpagina voor Facilitair en Conciërge opnieuw ingedeeld voor meer overzicht.
+- Alle werkonderdelen zijn inklapbaar en onthouden lokaal hun open/dicht-stand.
+- `Mijn werk vandaag` toont standaard als enige werkonderdeel open.
+- Planningsoverzicht 7 / 14 / 31 dagen gebruikt compacte regels in plaats van volledige dubbele meldingskaarten.
+- Het oude aparte blok `Planning` is verwijderd; planning staat voortaan op één plek.
+- Medewerkersoverzicht toont alleen samenvattingen per medewerker en geen dubbele meldingskaarten.
+- Hoofdbeheerder kan onder `Rollen & rechten` per rol bepalen welke onderdelen van de werkpagina zichtbaar zijn.
 
-- Nieuw **Weekoverzicht planning** op de werkpagina.
-- Medewerkers kiezen zelf een periode van **7, 14 of 31 dagen**.
-- De gekozen periode wordt per account op het apparaat onthouden.
-- Alleen niet-afgeronde meldingen met een geplande uitvoerdatum binnen de gekozen periode worden getoond.
-- Meldingen worden per geplande dag gegroepeerd, met datum, aantal meldingen en de bestaande snelle acties.
-- De bestaande onderdelen **Mijn werk vandaag**, **Planning** en **Medewerkersoverzicht** blijven behouden.
+## Werkpagina-onderdelen die apart aan/uit kunnen
+- Samenvatting met aantallen bovenaan
+- Mijn werk vandaag
+- Planningsoverzicht 7 / 14 / 31 dagen
+- Meldingenoverzicht
+- Medewerkersoverzicht
+- Mijn account & meldingsinstellingen
 
-Technisch:
-- Frontend/PWA-cache: 5.8.12.
-- Backend/API: ongewijzigd ten opzichte van v5.8.11.
-- Geen nieuwe SQL-migratie.
-- Geen update van de bestaande `smart-function` nodig.
+## Installatie
+Alleen GitHub bijwerken. Geen SQL en geen wijziging van de smart-function nodig.
 
-> **Update vanaf v5.8.11:** alleen GitHub bijwerken.
+Frontend/PWA-cache: 5.8.13.
