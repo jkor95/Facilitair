@@ -1,14 +1,19 @@
-# Meldpunt VWO v5.8.10
+# Meldpunt VWO v5.8.11
 
-## Aangepast
-- **Locatietekst** onder *Meldpagina: groen informatievlak & voorbeelden* mag nu volledig leeg worden gemaakt.
-- Een lege locatietekst wordt voortaan ook echt als leeg opgeslagen en niet automatisch teruggezet naar de standaardtekst.
-- Als de locatietekst leeg is, wordt die regel op de melderspagina helemaal niet weergegeven.
+Nieuwe werkfuncties voor Facilitair en Conciërge:
 
-## Technisch
-- Alleen frontend/GitHub aangepast.
-- Geen SQL nodig.
-- `smart-function` hoeft niet te worden gewijzigd.
-- Frontend/PWA-cache verhoogd naar 5.8.10.
+- Mogelijke dubbele meldingen worden tijdens het invullen herkend en getoond.
+- Per melding kan een geplande uitvoerdatum worden ingesteld.
+- Nieuwe Planning op de werkpagina: Te laat, Vandaag, komende 7 dagen, Later en Nog te plannen.
+- Snelle acties op meldingskaarten: Aan mij, In behandeling, Afronden en Heropenen.
+- Afgeronde meldingen kunnen expliciet worden heropend.
+- Meldingen krijgen lokaal de markering Nieuw of Gewijzigd sinds het vorige bezoek.
+- Mijn werk vandaag zet spoed, verlopen/vandaag geplande meldingen en werk in behandeling bovenaan.
+- Medewerkersoverzicht toont de actuele werkverdeling per Facilitair/Conciërge-medewerker.
+- Rollen & rechten heeft een apart recht Geplande uitvoerdatum wijzigen.
 
-Backend/API-versie blijft 5.88. Frontend/PWA-cache: 5.8.10.
+Technisch:
+- Frontend/PWA-cache: 5.8.11.
+- Backend/API: 5.89.
+- Eenmalig SQL-bestand: `supabase/UPGRADE-v5.8.11-EENMALIG.sql`.
+- Bestaande `smart-function` moet voor deze versie één keer worden bijgewerkt.

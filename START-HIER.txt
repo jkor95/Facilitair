@@ -1,16 +1,17 @@
-MELDPUNT VWO v5.8.10
+MELDPUNT VWO v5.8.11
 
-Deze versie is een GitHub/frontend-hotfix.
+Deze versie bevat planning en nieuwe serverfunctionaliteit. Daarom zijn deze keer 3 stappen nodig:
 
-AANPASSEN:
-1. Upload/vervang de GitHub-bestanden met de inhoud van deze map.
+1. SUPABASE SQL
+   Voer EEN KEER uit:
+   supabase/UPGRADE-v5.8.11-EENMALIG.sql
 
-NIET NODIG:
-- Geen SQL uitvoeren.
-- De bestaande Supabase smart-function niet aanpassen.
+2. SUPABASE SMART-FUNCTION
+   Vervang de code van je bestaande smart-function door:
+   supabase/functions/dalton-api/index.ts
+   en deploy de functie.
 
-Wijziging:
-- De Locatietekst in de beheerinstellingen kan nu volledig leeg worden opgeslagen.
-- Bij een lege Locatietekst wordt die tekstregel op de melderspagina niet getoond.
+3. GITHUB
+   Upload/vervang daarna de websitebestanden uit deze ZIP in je repository.
 
-Website: https://meldpuntvwo.nl/
+Geen bestaande meldingen, accounts of instellingen worden verwijderd.

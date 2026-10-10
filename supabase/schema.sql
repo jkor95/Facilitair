@@ -42,6 +42,7 @@ create table if not exists public.dm_tickets (
   status text not null default 'open' check (status in ('open','progress','wait','done')),
   assignee uuid references public.dm_accounts(id) on delete set null,
   internal_note text not null default '',
+  planned_for date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

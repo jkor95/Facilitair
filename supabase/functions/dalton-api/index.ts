@@ -21,8 +21,8 @@ const db = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
 
 
 const DEFAULT_ROLE_PERMISSIONS:any = {
-  facility: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
-  concierge: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+  facility: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+  concierge: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
 }
 const DEFAULT_SETTINGS:any = {
   showAuditToFacility:false,
@@ -259,7 +259,7 @@ async function getState(account: any, existingSettings?: any) {
   const clientAccount = { ...account, role }
   if (role === 'staff') {
     return {
-      version: 5.85,
+      version: 5.89,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
       settings: { ...settingsObj, publicAccessWordHash:undefined, publicAccessWordDisplay:undefined, publicAccessWordSet:!!settingsObj.publicAccessWordHash }, auditLog: [],
@@ -316,6 +316,7 @@ async function getState(account: any, existingSettings?: any) {
       dbId: t.id,
       createdAt: t.created_at,
       updatedAt: t.updated_at,
+      plannedFor: t.planned_for || '',
       reporter: role === 'admin' || perms.viewReporter ? t.reporter : '',
       reporterEmail: role === 'admin' || perms.viewReporter ? (t.reporter_email || '') : '',
       location: t.location,
@@ -342,7 +343,7 @@ async function getState(account: any, existingSettings?: any) {
   if (role !== 'admin' && !adminFns.managePublicAccess) delete clientSettings.publicAccessWordDisplay
   if (role !== 'admin') delete clientSettings.delegatedAdminPermissions
   return {
-    version: 5.85,
+    version: 5.89,
     currentAccount: current,
     accounts: mappedAccounts,
     tickets: mappedTickets,
@@ -453,11 +454,13 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
     category:{db:'category',perm:'editCategory',label:'categorie'},
     urgency:{db:'urgency',perm:'editUrgency',label:'urgentie'},
     status:{db:'status',perm:'editStatus',label:'status'},
+    plannedFor:{db:'planned_for',perm:'editPlannedFor',label:'gepland uitvoeren op'},
     internalNote:{db:'internal_note',perm:'editInternalNote',label:'interne notitie'},
   }
   const patch: any = { updated_at: new Date().toISOString() }
   const changes: string[] = []
   if ('title' in payload && !String(payload.title||'').trim()) throw new Error('Titel mag niet leeg zijn')
+  if ('plannedFor' in payload) { const raw=String(payload.plannedFor||'').trim(); if(raw&&!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error('Ongeldige geplande datum'); payload.plannedFor=raw||null }
   for (const [clientKey, cfg] of Object.entries(allowed)) {
     if (!(clientKey in payload)) continue
     if (role !== 'admin' && !perms[cfg.perm]) throw new Error(`Geen recht om ${cfg.label} te wijzigen`)
@@ -465,8 +468,8 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
     const before = old[cfg.db]
     if (String(before ?? '') !== String(v ?? '')) {
       patch[cfg.db] = v
-      const prettyBefore = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(before)] || before : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(before)] || before : before
-      const prettyAfter = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(v)] || v : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(v)] || v : v
+      const prettyBefore = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(before)] || before : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(before)] || before : clientKey==='plannedFor' ? (before || 'Niet gepland') : before
+      const prettyAfter = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(v)] || v : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(v)] || v : clientKey==='plannedFor' ? (v || 'Niet gepland') : v
       changes.push(`${cfg.label}: ${prettyBefore ?? '-'} -> ${prettyAfter ?? '-'}`)
     }
   }
@@ -560,6 +563,18 @@ async function setupPassword(payload: any) {
   return { username:a.username, name:a.name }
 }
 
+function normalizeDuplicateText(value:any){return String(value||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function duplicateTokens(value:any){return [...new Set(normalizeDuplicateText(value).split(' ').filter((x:string)=>x.length>=3))]}
+async function findDuplicateTickets(payload:any){
+  const location=normalizeDuplicateText(payload?.location),category=normalizeDuplicateText(payload?.category),title=normalizeDuplicateText(payload?.title),titleWords=duplicateTokens(payload?.title)
+  if(!location&&!title)return []
+  const {data,error}=await db.from('dm_tickets').select('ticket_no,created_at,location,category,urgency,title,status').neq('status','done').order('created_at',{ascending:false}).limit(200)
+  if(error)throw error
+  const rows=(data||[]).map((t:any)=>{let score=0;const rowLoc=normalizeDuplicateText(t.location),rowCat=normalizeDuplicateText(t.category),rowTitle=normalizeDuplicateText(t.title);if(location&&rowLoc===location)score+=6;else if(location&&rowLoc&&(rowLoc.includes(location)||location.includes(rowLoc)))score+=3;if(category&&rowCat===category)score+=3;if(title&&rowTitle===title)score+=6;else if(titleWords.length){const set=new Set(duplicateTokens(t.title));const shared=titleWords.filter((w:string)=>set.has(w)).length;if(shared>=2)score+=3;else if(shared===1)score+=1}return {score,id:t.ticket_no||'',createdAt:t.created_at,location:t.location,category:t.category,urgency:t.urgency,title:t.title,status:t.status}}).filter((x:any)=>x.score>=4)
+  rows.sort((a:any,b:any)=>b.score-a.score||new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())
+  return rows.slice(0,5).map(({score,...item}:any)=>item)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error:'Alleen POST toegestaan' },405)
@@ -568,7 +583,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.88 })
+    if (action === 'health') return json({ ok:true, version:5.89 })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])
@@ -610,6 +625,7 @@ Deno.serve(async (req) => {
       })
       return json({ ok:true, enabled:true, items:items.slice(0,100) })
     }
+    if (action === 'public_duplicate_check') { const settings=await loadSettingsObj(); await requirePublicAccess(payload,settings); return json({ok:true,items:await findDuplicateTickets(payload)}) }
     if (action === 'validate_public_access_word') {
       const settings=await loadSettingsObj()
       if(settings.publicAccessGateEnabled!==true)return json({ok:true,accessToken:''})
@@ -645,6 +661,7 @@ Deno.serve(async (req) => {
       return json({ok:true})
     }
     if (action === 'state') return json({ ok:true, state: await getState(account,requestSettings) })
+    if (action === 'duplicate_check') return json({ok:true,items:await findDuplicateTickets(payload)})
     if (action === 'create_ticket') {
       const ticket = await createTicket(payload, account)
       return json({ ok:true, ticket, state: await getState(account,requestSettings) })

@@ -1,32 +1,30 @@
-> **v5.8.10:** alleen GitHub/frontend aanpassen. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+# Installatie Meldpunt VWO v5.8.11
 
-# Installatie Meldpunt VWO v5.8.10
+Deze versie bevat één database-uitbreiding voor de planning. Daarom is dit één van de versies waarbij een Supabase-aanpassing echt nodig is.
 
-Deze release is een kleine frontend-hotfix voor de instelling **Locatietekst**.
+## 1. SQL één keer uitvoeren
 
-## 1. GitHub Pages
+Open in Supabase de SQL Editor en voer de volledige inhoud uit van:
 
-Upload/vervang de bestanden uit deze release in de root van de GitHub-repository `Facilitair`.
+`supabase/UPGRADE-v5.8.11-EENMALIG.sql`
 
-Behoud `CNAME` met:
+Dit voegt alleen `planned_for` toe aan de bestaande meldingentabel en maakt een index voor de planning. Bestaande meldingen blijven intact.
 
-`meldpuntvwo.nl`
+## 2. smart-function bijwerken
 
-## 2. Supabase
+Open je bestaande Edge Function `smart-function` en vervang de volledige `index.ts` door:
 
-Voor v5.8.10 hoef je niets in Supabase te wijzigen:
+`supabase/functions/dalton-api/index.ts`
 
-- geen SQL uitvoeren;
-- `smart-function` niet opnieuw deployen;
-- bestaande database en instellingen blijven behouden.
+Deploy daarna de functie. De huidige eigen login en beveiliging blijven behouden.
 
-## 3. Controle
+## 3. GitHub bijwerken
 
-Controleer na de GitHub-deploy:
+Upload/vervang daarna de websitebestanden in de root van je GitHub Pages repository. Laat `CNAME` staan met `meldpuntvwo.nl`.
 
-1. Log in als beheerder.
-2. Open **Meldpagina: groen informatievlak & voorbeelden**.
-3. Maak **Locatietekst** volledig leeg.
-4. Klik op **Groene vlak & voorbeelden opslaan**.
-5. Open/vernieuw de melderspagina.
-6. De locatietekst hoort nu volledig verdwenen te zijn en mag na opnieuw openen van de beheerinstellingen niet terugkomen.
+## Controle
+
+- Open een bestaande melding en stel een datum in bij **Gepland uitvoeren op**.
+- Controleer of de melding onder **Planning** verschijnt.
+- Test **In behandeling**, **Afronden** en **Heropenen** vanaf een meldingskaart.
+- Vul op de melderspagina een locatie/categorie/titel in die op een bestaande open melding lijkt; de waarschuwing **Mogelijk al gemeld** moet verschijnen.

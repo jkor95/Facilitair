@@ -1,19 +1,24 @@
-> **v5.8.10:** alleen GitHub/frontend aanpassen. Geen SQL uitvoeren en de `smart-function` niet aanpassen.
+> **v5.8.11:** GitHub + smart-function + één kleine eenmalige SQL-upgrade.
 
 # Meldpunt VWO
 
-Productieversie **v5.8.10** voor `https://meldpuntvwo.nl/`.
+Productieversie **v5.8.11** voor `https://meldpuntvwo.nl/`.
 
-## Deze release
+## Nieuw
 
-Hotfix voor **Locatietekst** onder *Meldpagina: groen informatievlak & voorbeelden*:
+- dubbele melding herkennen tijdens het melden;
+- geplande uitvoerdatum per melding;
+- planning voor Facilitair/Conciërge;
+- snelle acties op meldingskaarten;
+- afgeronde melding heropenen;
+- Nieuw/Gewijzigd sinds laatste bezoek;
+- Mijn werk vandaag;
+- medewerkersoverzicht met actuele werkverdeling.
 
-- de tekst mag nu volledig leeg worden opgeslagen;
-- een lege waarde wordt niet meer automatisch vervangen door de standaardtekst;
-- als de Locatietekst leeg is, wordt die regel op de openbare melderspagina niet weergegeven.
+## Installatie vanaf v5.8.10
 
-## Installatie
+1. Voer `supabase/UPGRADE-v5.8.11-EENMALIG.sql` één keer uit.
+2. Werk de bestaande `smart-function` bij met `supabase/functions/dalton-api/index.ts`.
+3. Upload/vervang de GitHub-bestanden.
 
-Zie `START-HIER.txt` en `INSTALLATIE-SUPABASE-EN-GITHUB.md`.
-
-Voor v5.8.10 hoef je alleen de GitHub-bestanden te vervangen. Geen SQL en geen wijziging aan de `smart-function`.
+De extra SQL is deze keer echt nodig omdat een geplande uitvoerdatum persistent bij een melding moet worden opgeslagen. Er wordt slechts één kolom en één index toegevoegd; bestaande data blijven intact.
