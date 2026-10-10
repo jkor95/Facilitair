@@ -106,3 +106,5 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 .planning-range-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .planning-range-label select{width:auto;min-width:110px}
 @media(max-width:700px){.compact-ticket{grid-template-columns:1fr}.compact-ticket>.chips{justify-content:flex-start}.planning-range-label{width:100%;justify-content:space-between}.planning-range-label select{flex:0 0 auto}}
+
+.assignee-checklist{display:grid;gap:8px;margin-top:6px;padding:10px 12px;border:1px solid #d6e1df;border-radius:12px;background:#f8fbfa;max-height:220px;overflow:auto}.assignee-option{padding:6px 2px}.assignee-option input{flex:0 0 auto}

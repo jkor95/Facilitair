@@ -1,14 +1,14 @@
-# Meldpunt VWO v5.8.18
+# Meldpunt VWO v5.8.19
 
-## Fix personeels-overzicht
-- Facilitair en Conciërge zien onder **Alle meldingen** weer daadwerkelijk de volledige lijst die bovenaan wordt geteld.
-- Een melding zonder ingevulde toelichting/omschrijving kan de hele lijst niet meer laten vastlopen.
-- Ook ontbrekende optionele velden in oudere meldingen worden veilig weergegeven.
-- De bestaande rechten blijven gelden: **Alle meldingen bekijken en openen** bepaalt of het overzicht zichtbaar is; bewerkrechten bepalen wat gewijzigd mag worden.
+## Wijziging
+- Toewijzen aan een melding ondersteunt nu meerdere medewerkers tegelijk via vinkjes.
+- Bestaande toewijzingen worden vooraf aangevinkt.
+- Geen vinkjes betekent: niet toegewezen.
+- De wijzigingsgeschiedenis toont alle gekozen medewerkers.
 
 ## Installatie
-Alleen GitHub bijwerken met deze versie.
+- GitHub: bijwerken.
+- Supabase Edge Function `smart-function`: bijwerken met `supabase/functions/dalton-api/index.ts`.
+- SQL: niet nodig.
 
-Geen nieuwe SQL nodig en `smart-function` hoeft ten opzichte van v5.8.17 niet opnieuw aangepast te worden.
-
-Frontend/PWA-cache: 5.8.18.
+Frontend/PWA-cache: 5.8.19.

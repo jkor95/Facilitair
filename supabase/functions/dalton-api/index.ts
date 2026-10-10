@@ -486,20 +486,30 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
       changes.push(`zichtbaarheid melderspagina: ${beforeVisible?'Zichtbaar':'Verborgen'} -> ${visible?'Zichtbaar':'Verborgen'}`)
     }
   }
-  if ('assignee' in payload) {
+  if ('assignees' in payload || 'assignee' in payload) {
     if (role !== 'admin' && !perms.editAssignment) throw new Error('Geen recht om de toewijzing te wijzigen')
-    const selected = String(payload.assignee || '')
+    const requested = Array.isArray(payload.assignees)
+      ? payload.assignees.map((x:any)=>String(x||'').trim()).filter(Boolean)
+      : (String(payload.assignee||'').trim() ? [String(payload.assignee).trim()] : [])
+    const selected = [...new Set(requested)]
+    let validIds:string[] = []
+    if (selected.length) {
+      const {data:validRows,error:validErr}=await db.from('dm_accounts').select('id,active,role').in('id',selected)
+      if (validErr) throw validErr
+      validIds=(validRows||[]).filter((x:any)=>x.active!==false && ['facility','concierge'].includes(x.role)).map((x:any)=>String(x.id))
+      if (validIds.length!==selected.length) throw new Error('Een of meer gekozen medewerkers zijn niet geldig of niet actief')
+    }
     await db.from('dm_ticket_assignments').delete().eq('ticket_id',id)
-    if (selected) {
-      const { error: aErr } = await db.from('dm_ticket_assignments').insert({ticket_id:id,account_id:selected})
+    if (validIds.length) {
+      const { error: aErr } = await db.from('dm_ticket_assignments').insert(validIds.map(account_id=>({ticket_id:id,account_id})))
       if (aErr) throw aErr
     }
-    patch.assignee = selected || null
-    const allIds=[...new Set([...(beforeIds||[]),...(old.assignee?[old.assignee]:[]),...(selected?[selected]:[])].filter(Boolean))]
+    patch.assignee = validIds[0] || null
+    const allIds=[...new Set([...(beforeIds||[]),...(old.assignee?[old.assignee]:[]),...validIds].filter(Boolean))]
     const {data:nameRows}=allIds.length?await db.from('dm_accounts').select('id,name,role').in('id',allIds):{data:[]} as any
     const nameMap=new Map<string,string>((nameRows||[]).map((x:any)=>[String(x.id),`${x.name} (${x.role==='concierge'?'Conciërge':x.role==='facility'?'Facilitair':x.role==='admin'?'Hoofdbeheerder':'Personeel'})`]))
     const beforeList=(beforeIds.length?beforeIds:(old.assignee?[old.assignee]:[])).map((id:any)=>nameMap.get(String(id))||String(id))
-    const afterList=selected?[nameMap.get(selected)||selected]:[]
+    const afterList=validIds.map((id:any)=>nameMap.get(String(id))||String(id))
     const beforeLabel=beforeList.length?beforeList.join(', '):'Niet toegewezen'
     const afterLabel=afterList.length?afterList.join(', '):'Niet toegewezen'
     if (beforeLabel !== afterLabel) changes.push(`toewijzing: ${beforeLabel} -> ${afterLabel}`)
