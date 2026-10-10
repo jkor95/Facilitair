@@ -257,7 +257,7 @@ async function getState(account: any, existingSettings?: any) {
   const clientAccount = { ...account, role }
   if (role === 'staff') {
     return {
-      version: 5.89,
+      version: 5.817,
       currentAccount: safeAccount(clientAccount, false),
       accounts: [], tickets: [], routing: {},
       settings: { ...settingsObj, publicAccessWordHash:undefined, publicAccessWordDisplay:undefined, publicAccessWordSet:!!settingsObj.publicAccessWordHash }, auditLog: [],
@@ -315,6 +315,7 @@ async function getState(account: any, existingSettings?: any) {
       createdAt: t.created_at,
       updatedAt: t.updated_at,
       plannedFor: t.planned_for || '',
+      publicVisible: t.public_visible !== false,
       reporter: role === 'admin' || perms.viewReporter ? t.reporter : '',
       reporterEmail: role === 'admin' || perms.viewReporter ? (t.reporter_email || '') : '',
       location: t.location,
@@ -341,7 +342,7 @@ async function getState(account: any, existingSettings?: any) {
   if (role !== 'admin' && !adminFns.managePublicAccess) delete clientSettings.publicAccessWordDisplay
   if (role !== 'admin') delete clientSettings.delegatedAdminPermissions
   return {
-    version: 5.89,
+    version: 5.817,
     currentAccount: current,
     accounts: mappedAccounts,
     tickets: mappedTickets,
@@ -400,6 +401,9 @@ async function createTicket(payload: any, actorAccount: any | null) {
   const urgency = canContinue === 'nee' ? 'spoed' : String(payload.urgency || 'normaal')
   const reporterEmail = String(payload.reporterEmail || '').trim().slice(0,254)
   if (reporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporterEmail)) throw new Error('Vul een geldig e-mailadres in')
+  let publicVisible = true
+  if (actorAccount && isOperationalRole(String(actorAccount.role||''))) publicVisible = payload.publicVisible === true
+  else if (!actorAccount) publicVisible = !(await reporterMatchesOperationalAccount(payload.reporter))
   const { data: inserted, error } = await db.from('dm_tickets').insert({
     reporter: String(payload.reporter || '').slice(0,160),
     reporter_email: reporterEmail,
@@ -411,6 +415,7 @@ async function createTicket(payload: any, actorAccount: any | null) {
     can_continue: canContinue,
     status: 'open',
     assignee: primary,
+    public_visible: publicVisible,
   }).select('*').single()
   if (error) throw error
   if (routeIds.length) {
@@ -425,6 +430,7 @@ async function createTicket(payload: any, actorAccount: any | null) {
   const actor = actorAccount?.name || String(payload.reporter || 'Melder') || 'Melder'
   const actorId = actorAccount?.id || null
   await history(inserted.id, actor, actorId, 'Melding aangemaakt')
+  if (!publicVisible) await history(inserted.id, actor, actorId, 'Zichtbaarheid melderspagina: Zichtbaar -> Verborgen')
   let assigneeNames: string[] = []
   if (routeIds.length) {
     const { data: aa } = await db.from('dm_accounts').select('id,name').in('id', routeIds)
@@ -469,6 +475,15 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
       const prettyBefore = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(before)] || before : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(before)] || before : clientKey==='plannedFor' ? (before || 'Niet gepland') : before
       const prettyAfter = clientKey==='status' ? ({open:'Open',progress:'In behandeling',wait:'Wacht / gepland',done:'Afgerond'} as any)[String(v)] || v : clientKey==='urgency' ? ({laag:'Laag',normaal:'Normaal',hoog:'Hoog',spoed:'SPOED'} as any)[String(v)] || v : clientKey==='plannedFor' ? (v || 'Niet gepland') : v
       changes.push(`${cfg.label}: ${prettyBefore ?? '-'} -> ${prettyAfter ?? '-'}`)
+    }
+  }
+  if ('publicVisible' in payload) {
+    if (role !== 'admin' && !isOperationalRole(role)) throw new Error('Geen recht om de zichtbaarheid op de melderspagina te wijzigen')
+    const visible = payload.publicVisible === true
+    const beforeVisible = old.public_visible !== false
+    if (beforeVisible !== visible) {
+      patch.public_visible = visible
+      changes.push(`zichtbaarheid melderspagina: ${beforeVisible?'Zichtbaar':'Verborgen'} -> ${visible?'Zichtbaar':'Verborgen'}`)
     }
   }
   if ('assignee' in payload) {
@@ -562,11 +577,19 @@ async function setupPassword(payload: any) {
 }
 
 function normalizeDuplicateText(value:any){return String(value||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function normalizePersonName(value:any){return String(value||'').normalize('NFKC').toLocaleLowerCase('nl-NL').replace(/\s+/g,' ').trim()}
+async function reporterMatchesOperationalAccount(value:any){
+  const reporter=normalizePersonName(value)
+  if(!reporter)return false
+  const {data,error}=await db.from('dm_accounts').select('name').eq('role','facility').eq('active',true)
+  if(error)throw error
+  return (data||[]).some((a:any)=>{const full=normalizePersonName(a.name),first=full.split(' ')[0]||'';return reporter===full||(first&&reporter===first)})
+}
 function duplicateTokens(value:any){return [...new Set(normalizeDuplicateText(value).split(' ').filter((x:string)=>x.length>=3))]}
-async function findDuplicateTickets(payload:any){
+async function findDuplicateTickets(payload:any, publicOnly=false){
   const location=normalizeDuplicateText(payload?.location),category=normalizeDuplicateText(payload?.category),title=normalizeDuplicateText(payload?.title),titleWords=duplicateTokens(payload?.title)
   if(!location&&!title)return []
-  const {data,error}=await db.from('dm_tickets').select('ticket_no,created_at,location,category,urgency,title,status').neq('status','done').order('created_at',{ascending:false}).limit(200)
+  let duplicateQuery=db.from('dm_tickets').select('ticket_no,created_at,location,category,urgency,title,status,public_visible').neq('status','done');if(publicOnly)duplicateQuery=duplicateQuery.eq('public_visible',true);const {data,error}=await duplicateQuery.order('created_at',{ascending:false}).limit(200)
   if(error)throw error
   const rows=(data||[]).map((t:any)=>{let score=0;const rowLoc=normalizeDuplicateText(t.location),rowCat=normalizeDuplicateText(t.category),rowTitle=normalizeDuplicateText(t.title);if(location&&rowLoc===location)score+=6;else if(location&&rowLoc&&(rowLoc.includes(location)||location.includes(rowLoc)))score+=3;if(category&&rowCat===category)score+=3;if(title&&rowTitle===title)score+=6;else if(titleWords.length){const set=new Set(duplicateTokens(t.title));const shared=titleWords.filter((w:string)=>set.has(w)).length;if(shared>=2)score+=3;else if(shared===1)score+=1}return {score,id:t.ticket_no||'',createdAt:t.created_at,location:t.location,category:t.category,urgency:t.urgency,title:t.title,status:t.status}}).filter((x:any)=>x.score>=4)
   rows.sort((a:any,b:any)=>b.score-a.score||new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())
@@ -581,7 +604,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.89 })
+    if (action === 'health') return json({ ok:true, version:5.817 })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])
@@ -602,7 +625,8 @@ Deno.serve(async (req) => {
       const visibleStatuses = configuredStatuses === null ? defaultStatuses : configuredStatuses
       if (!visibleCategories.length || !visibleStatuses.length) return json({ ok:true, enabled:true, items:[] })
       const { data: rows, error } = await db.from('dm_tickets')
-        .select('ticket_no,created_at,location,category,urgency,title,status')
+        .select('ticket_no,created_at,location,category,urgency,title,status,public_visible')
+        .eq('public_visible',true)
         .in('status',visibleStatuses)
         .in('category',visibleCategories)
         .order('created_at',{ascending:false})
@@ -623,7 +647,7 @@ Deno.serve(async (req) => {
       })
       return json({ ok:true, enabled:true, items:items.slice(0,100) })
     }
-    if (action === 'public_duplicate_check') { const settings=await loadSettingsObj(); await requirePublicAccess(payload,settings); return json({ok:true,items:await findDuplicateTickets(payload)}) }
+    if (action === 'public_duplicate_check') { const settings=await loadSettingsObj(); await requirePublicAccess(payload,settings); return json({ok:true,items:await findDuplicateTickets(payload,true)}) }
     if (action === 'validate_public_access_word') {
       const settings=await loadSettingsObj()
       if(settings.publicAccessGateEnabled!==true)return json({ok:true,accessToken:''})

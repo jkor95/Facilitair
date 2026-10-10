@@ -43,6 +43,7 @@ create table if not exists public.dm_tickets (
   assignee uuid references public.dm_accounts(id) on delete set null,
   internal_note text not null default '',
   planned_for date,
+  public_visible boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -1,13 +1,16 @@
-# Meldpunt VWO v5.8.16
+# Meldpunt VWO v5.8.17
 
 ## Wijzigingen
-- Het meldingenoverzicht voor Facilitair en Conciërge toont nu altijd alle meldingen die door de server zijn geladen.
-- De keuzelijst **Weergave** is verwijderd. Hierdoor kan Safari niet meer een oude filterkeuze herstellen waardoor de lijst leeg leek.
-- Het aantal in de kop en de zichtbare lijst gebruiken nu dezelfde bron (`db.tickets`).
-- Tikken op een melding opent direct de bestaande detail-/bewerkweergave.
-- Rollen & rechten blijven ongewijzigd: **Alle meldingen bekijken en openen** bepaalt of het overzicht zichtbaar is; aparte bewerkrechten bepalen wat gewijzigd mag worden.
+- Interne meldingen kunnen worden verborgen uit **Actuele meldingen** op de melderspagina.
+- Facilitair en Conciërge krijgen bij het maken van een melding een vinkje **Tonen bij Actuele meldingen op de melderspagina**. Dit staat standaard uit.
+- In de detailweergave van iedere melding kunnen Facilitair, Conciërge en Hoofdbeheerder deze zichtbaarheid later wijzigen.
+- Meldingen die via de openbare melderspagina worden gedaan met de voornaam of volledige naam van een actief Facilitair/Conciërge-account worden automatisch als intern behandeld. Naamvergelijking is niet hoofdlettergevoelig.
+- De openbare dubbele-meldingcontrole laat interne meldingen niet zien.
+- Bestaande meldingen van actieve Facilitair/Conciërge-accounts worden bij de eenmalige upgrade automatisch verborgen op basis van voornaam of volledige naam.
 
 ## Installatie
-Alleen GitHub bijwerken. Geen SQL en geen smart-function wijziging nodig.
+1. Voer `supabase/UPGRADE-v5.8.17-EENMALIG.sql` eenmalig uit.
+2. Vervang daarna de bestaande `smart-function` door `supabase/functions/dalton-api/index.ts`.
+3. Werk daarna GitHub bij met de bestanden uit deze versie.
 
-Frontend/PWA-cache: 5.8.16.
+Frontend/PWA-cache: 5.8.17.
