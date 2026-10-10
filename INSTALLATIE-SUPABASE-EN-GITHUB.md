@@ -1,17 +1,9 @@
-# Installatie Meldpunt VWO v5.8.15
+# Installatie Meldpunt VWO v5.8.16
 
-Voor deze update zijn **2 stappen** nodig.
+Deze versie is **GitHub-only**.
 
-## 1. Supabase smart-function vervangen
-Open in Supabase de bestaande Edge Function **smart-function** en vervang de inhoud door:
-
-`supabase/functions/dalton-api/index.ts`
-
-Deploy daarna de functie. Er hoeft geen SQL uitgevoerd te worden.
-
-Deze serverwijziging is nodig omdat Facilitair en Conciërge voortaan met één recht alle open én afgeronde meldingen ontvangen. De afzonderlijke bewerkrechten blijven server-side gecontroleerd.
-
-## 2. GitHub bijwerken
-Upload/vervang daarna de websitebestanden uit deze release in de GitHub repository.
-
-Open vervolgens `https://meldpuntvwo.nl/`. De PWA-cache is verhoogd naar **5.8.15**.
+1. Upload/vervang de bestanden uit deze map in de GitHub-repository.
+2. Laat `CNAME` en `assets/config.js` ongewijzigd aanwezig.
+3. Er hoeft geen SQL uitgevoerd te worden.
+4. De Supabase `smart-function` hoeft niet vervangen te worden.
+5. Open daarna `https://meldpuntvwo.nl/` en ververs één keer. De PWA-cache is verhoogd naar **5.8.16**.

@@ -1,18 +1,13 @@
-# Meldpunt VWO v5.8.15
+# Meldpunt VWO v5.8.16
 
-## Nieuw
-- De werkpagina voor **Facilitair** en **Conciërge** is vereenvoudigd.
-- **Mijn werk vandaag** is volledig verwijderd.
-- **Alle meldingen** staat voortaan als hoofdonderdeel bovenaan en is standaard open.
-- Facilitair/Conciërge kunnen, wanneer **Alle meldingen bekijken en openen** aan staat, alle open én afgeronde meldingen zien.
-- Het oude versnipperde zichtrechtenmodel (alle open / aan mij / niet toegewezen / afgerond) is vervangen door één duidelijk zichtrecht.
-- Binnen Alle meldingen kan worden gefilterd op Alle meldingen, Alle open, In behandeling, Wacht / gepland, Afgerond en Spoed.
-- Bewerkrechten blijven apart instelbaar door de beheerder en worden server-side gecontroleerd.
-- Planningsoverzicht, Medewerkersoverzicht en Mijn account blijven als inklapbare ondersteunende onderdelen beschikbaar.
+## Wijzigingen
+- Het meldingenoverzicht voor Facilitair en Conciërge toont nu altijd alle meldingen die door de server zijn geladen.
+- De keuzelijst **Weergave** is verwijderd. Hierdoor kan Safari niet meer een oude filterkeuze herstellen waardoor de lijst leeg leek.
+- Het aantal in de kop en de zichtbare lijst gebruiken nu dezelfde bron (`db.tickets`).
+- Tikken op een melding opent direct de bestaande detail-/bewerkweergave.
+- Rollen & rechten blijven ongewijzigd: **Alle meldingen bekijken en openen** bepaalt of het overzicht zichtbaar is; aparte bewerkrechten bepalen wat gewijzigd mag worden.
 
 ## Installatie
-- Geen SQL nodig.
-- **Smart-function wel vervangen** met `supabase/functions/dalton-api/index.ts` uit deze versie.
-- Daarna de GitHub-bestanden bijwerken.
+Alleen GitHub bijwerken. Geen SQL en geen smart-function wijziging nodig.
 
-Frontend/PWA-cache: 5.8.15.
+Frontend/PWA-cache: 5.8.16.

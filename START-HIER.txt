@@ -1,4 +1,4 @@
-MELDPUNT VWO v5.8.15
+MELDPUNT VWO v5.8.16
 
 1. Geen SQL uitvoeren.
 2. Vervang/deploy Supabase Edge Function smart-function met:
