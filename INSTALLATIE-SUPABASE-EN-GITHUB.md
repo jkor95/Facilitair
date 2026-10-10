@@ -1,10 +1,10 @@
-# Update v5.8.19
+# Update v5.8.20
 
-Deze versie maakt meervoudige toewijzing vanuit de meldingsdetailpagina mogelijk.
+Voor deze versie hoef je alleen de bestanden op GitHub bij te werken.
 
-## Uitvoeren
-1. Vervang in Supabase de bestaande `smart-function` door `supabase/functions/dalton-api/index.ts`.
-2. Publiceer daarna de bestanden uit deze map naar GitHub Pages.
-3. Er is geen SQL-migratie nodig.
+- Geen SQL uitvoeren.
+- De Supabase `smart-function` hoeft niet aangepast te worden.
+- Het aparte planningsoverzicht en de roloptie daarvoor zijn verwijderd.
+- Facilitair en Conciërge zien hun meldingen via het normale onderdeel **Alle meldingen**.
 
-De cacheversie is verhoogd naar 5.8.19.
+De cacheversie is verhoogd naar 5.8.20.
