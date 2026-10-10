@@ -1,7 +1,9 @@
-MELDPUNT VWO v5.8.14
+MELDPUNT VWO v5.8.15
 
-ALLEEN GITHUB BIJWERKEN.
-Geen SQL uitvoeren.
-Smart-function niet aanpassen.
+1. Geen SQL uitvoeren.
+2. Vervang/deploy Supabase Edge Function smart-function met:
+   supabase/functions/dalton-api/index.ts
+3. Upload daarna de GitHub-bestanden.
 
-Na upload: https://meldpuntvwo.nl/
+Belangrijkste wijziging:
+Facilitair en Conciërge krijgen één duidelijk overzicht met alle meldingen. "Mijn werk vandaag" is verwijderd.

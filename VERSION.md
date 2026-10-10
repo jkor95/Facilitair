@@ -1,9 +1,18 @@
-# Meldpunt VWO v5.8.14
+# Meldpunt VWO v5.8.15
 
 ## Nieuw
-- Onder **Meldingen** ziet Facilitair/Conciërge standaard direct het volledige overzicht van alle meldingen die volgens de rolrechten zichtbaar zijn.
-- De zoekbalk is verwijderd.
-- De keuzelijst blijft beschikbaar voor Alle meldingen, Alle open, Aan mij, Niet toegewezen en Afgerond, voor zover toegestaan door de rolrechten.
-- Geen wijziging aan database of smart-function.
+- De werkpagina voor **Facilitair** en **Conciërge** is vereenvoudigd.
+- **Mijn werk vandaag** is volledig verwijderd.
+- **Alle meldingen** staat voortaan als hoofdonderdeel bovenaan en is standaard open.
+- Facilitair/Conciërge kunnen, wanneer **Alle meldingen bekijken en openen** aan staat, alle open én afgeronde meldingen zien.
+- Het oude versnipperde zichtrechtenmodel (alle open / aan mij / niet toegewezen / afgerond) is vervangen door één duidelijk zichtrecht.
+- Binnen Alle meldingen kan worden gefilterd op Alle meldingen, Alle open, In behandeling, Wacht / gepland, Afgerond en Spoed.
+- Bewerkrechten blijven apart instelbaar door de beheerder en worden server-side gecontroleerd.
+- Planningsoverzicht, Medewerkersoverzicht en Mijn account blijven als inklapbare ondersteunende onderdelen beschikbaar.
 
-Frontend/PWA-cache: 5.8.14.
+## Installatie
+- Geen SQL nodig.
+- **Smart-function wel vervangen** met `supabase/functions/dalton-api/index.ts` uit deze versie.
+- Daarna de GitHub-bestanden bijwerken.
+
+Frontend/PWA-cache: 5.8.15.

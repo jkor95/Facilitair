@@ -21,8 +21,8 @@ const db = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
 
 
 const DEFAULT_ROLE_PERMISSIONS:any = {
-  facility: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
-  concierge: { viewAllOpen:true, viewAssigned:true, viewUnassigned:true, viewCompleted:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+  facility: { viewAllTickets:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
+  concierge: { viewAllTickets:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
 }
 const DEFAULT_SETTINGS:any = {
   showAuditToFacility:false,
@@ -93,11 +93,9 @@ function hasAdminFunction(account:any, settings:any, key:string){ return account
 function ticketVisibleFor(account:any, role:string, perms:any, ticket:any, assigneeIds:string[]){
   if (role === 'admin') return true
   if (!isOperationalRole(role)) return false
-  if (ticket.status === 'done') return !!perms.viewCompleted
-  if (perms.viewAllOpen) return true
-  if (assigneeIds.includes(account.id) && perms.viewAssigned) return true
-  if (!assigneeIds.length && perms.viewUnassigned) return true
-  return false
+  // Facilitair en Conciërge gebruiken één helder zichtrecht. Als dit aan staat,
+  // ontvangen zij alle open én afgeronde meldingen. Bewerkrechten blijven apart.
+  return perms.viewAllTickets !== false
 }
 async function setAccountRoleOverride(accountId:string, requestedRole:string){
   const settings = await loadSettingsObj()
