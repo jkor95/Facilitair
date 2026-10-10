@@ -1,10 +1,10 @@
-# Update v5.8.20
+# Update v5.8.21
 
 Voor deze versie hoef je alleen de bestanden op GitHub bij te werken.
 
 - Geen SQL uitvoeren.
 - De Supabase `smart-function` hoeft niet aangepast te worden.
-- Het aparte planningsoverzicht en de roloptie daarvoor zijn verwijderd.
-- Facilitair en Conciërge zien hun meldingen via het normale onderdeel **Alle meldingen**.
+- Facilitair en Conciërge krijgen twee standaard uitgevouwen meldingenoverzichten: **Aan mij toegewezen** en **Algemene meldingen**.
+- Een melding staat maar in één van beide lijsten.
 
-De cacheversie is verhoogd naar 5.8.20.
+De cacheversie is verhoogd naar 5.8.21.

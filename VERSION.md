@@ -1,13 +1,14 @@
-# Meldpunt VWO v5.8.20
+# Meldpunt VWO v5.8.21
 
 ## Wijzigingen
-- Het aparte **Planningsoverzicht 7 / 14 / 31 dagen** is volledig verwijderd van de werkpagina van Facilitair en Conciërge.
-- De bijbehorende roloptie is verwijderd uit **Rollen & rechten**.
-- Facilitair en Conciërge gebruiken nu alleen het normale onderdeel **Alle meldingen** als centraal meldingenoverzicht.
-- Opgelost: als het planningsoverzicht uit stond, kon een JavaScript-fout voorkomen dat het normale meldingenoverzicht werd gevuld.
-- Het koppelen van meldingskaarten is extra robuust gemaakt wanneer een optioneel onderdeel niet op de pagina staat.
+- Het centrale meldingenoverzicht voor Facilitair en Conciërge is opgesplitst in twee duidelijke, standaard uitgevouwen onderdelen.
+- **Aan mij toegewezen** toont alleen meldingen waarin de ingelogde medewerker zelf als toegewezen medewerker staat.
+- **Algemene meldingen** toont alle overige meldingen waarin de ingelogde medewerker niet als toegewezen medewerker staat.
+- Een melding staat daardoor nooit dubbel in beide onderdelen.
+- Beide onderdelen blijven inklapbaar en onthouden per apparaat of ze open of dicht staan.
+- Alle bestaande bewerkrechten en het openen van meldingen blijven ongewijzigd werken.
 
 ## Installatie
 Alleen GitHub-bestanden bijwerken. Geen SQL en geen wijziging aan `smart-function` nodig.
 
-Frontend/PWA-cache: 5.8.20.
+Frontend/PWA-cache: 5.8.21.
