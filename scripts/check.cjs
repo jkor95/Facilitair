@@ -14,7 +14,11 @@ for (const file of ['assets/app.js','assets/styles.css','assets/config.js','mani
 for (const file of ['assets/app.js','assets/config.js','sw.js']) {
   cp.execFileSync(process.execPath, ['--check', path.join(root,file)], {stdio:'pipe'});
 }
-JSON.parse(read('manifest.webmanifest'));
+const manifest = JSON.parse(read('manifest.webmanifest'));
+for (const icon of manifest.icons || []) {
+  const file = icon.src.split(/[?#]/)[0];
+  assert(fs.existsSync(path.join(root, file)), 'Ontbrekend PWA-icoon: '+file);
+}
 assert(/meldpuntvwo\.nl/.test(html), 'Canonical domein ontbreekt');
 console.log('Meldpunt VWO: statische bestanden, domein, HTML-verwijzingen, JS-syntax en manifest OK.');
 console.log('Let op: ingelogde functies en Supabase zijn hiermee niet getest.');

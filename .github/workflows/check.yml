@@ -20,4 +20,6 @@ jobs:
         with:
           node-version: '24'
       - name: Controleer website zonder productieverbinding
-        run: node scripts/check.cjs
+        run: |
+          node scripts/check.cjs
+          node --test scripts/check.test.cjs
