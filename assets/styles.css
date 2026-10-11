@@ -112,3 +112,14 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 /* v5.8.22 - urgentielabels op de openbare melderspagina altijd gecentreerd */
 .public-ticket .ticket-head{align-items:flex-start}
 .public-ticket .ticket-head>.chip{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;flex:0 0 auto;text-align:center;line-height:1.15;white-space:nowrap}
+
+/* v5.8.23 - status- en urgentielabels op de interne werkpagina centreren */
+.ticket:not(.public-ticket) .chip,
+.compact-ticket .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  vertical-align: middle;
+}
