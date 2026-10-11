@@ -108,3 +108,7 @@ label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.req:after{
 @media(max-width:700px){.compact-ticket{grid-template-columns:1fr}.compact-ticket>.chips{justify-content:flex-start}.planning-range-label{width:100%;justify-content:space-between}.planning-range-label select{flex:0 0 auto}}
 
 .assignee-checklist{display:grid;gap:8px;margin-top:6px;padding:10px 12px;border:1px solid #d6e1df;border-radius:12px;background:#f8fbfa;max-height:220px;overflow:auto}.assignee-option{padding:6px 2px}.assignee-option input{flex:0 0 auto}
+
+/* v5.8.22 - urgentielabels op de openbare melderspagina altijd gecentreerd */
+.public-ticket .ticket-head{align-items:flex-start}
+.public-ticket .ticket-head>.chip{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;flex:0 0 auto;text-align:center;line-height:1.15;white-space:nowrap}

@@ -1,14 +1,12 @@
-# Meldpunt VWO v5.8.21
+# Meldpunt VWO v5.8.22
 
 ## Wijzigingen
-- Het centrale meldingenoverzicht voor Facilitair en Conciërge is opgesplitst in twee duidelijke, standaard uitgevouwen onderdelen.
-- **Aan mij toegewezen** toont alleen meldingen waarin de ingelogde medewerker zelf als toegewezen medewerker staat.
-- **Algemene meldingen** toont alle overige meldingen waarin de ingelogde medewerker niet als toegewezen medewerker staat.
-- Een melding staat daardoor nooit dubbel in beide onderdelen.
-- Beide onderdelen blijven inklapbaar en onthouden per apparaat of ze open of dicht staan.
-- Alle bestaande bewerkrechten en het openen van meldingen blijven ongewijzigd werken.
+- Op de melderspagina staan de urgentielabels bij **Actuele meldingen** nu altijd correct gecentreerd.
+- De tekst in labels zoals **Laag**, **Normaal**, **Hoog** en **SPOED** wordt zowel horizontaal als verticaal gecentreerd, ongeacht de hoogte of breedte van het label.
+- Het urgentielabel rekt niet langer mee met de hoogte van de titel- en metagegevens ernaast.
+- Geen functionele wijzigingen aan meldingen, rechten of Supabase.
 
 ## Installatie
 Alleen GitHub-bestanden bijwerken. Geen SQL en geen wijziging aan `smart-function` nodig.
 
-Frontend/PWA-cache: 5.8.21.
+Frontend/PWA-cache: 5.8.22.
