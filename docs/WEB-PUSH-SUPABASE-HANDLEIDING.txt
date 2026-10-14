@@ -1,41 +1,30 @@
-WEB PUSH – MELDPUNT VWO – NOG NIET UITVOEREN
+WEB PUSH – MELDPUNT VWO – STAPPEN VOOR DE BEHEERDER
+Status: CODE VOORBEREID, NOG NIET GEDEPLOYD. Voer onderstaande stappen pas uit nadat de code is gecontroleerd en getest.
 
-Status: voorbereid, NIET actief. De wijziging in sw.js is alleen de veilige ontvanger voor pushberichten.
+Bestaande actieve Edge Function: smart-function
+GitHub bron voor volledige vervangende functie: supabase/functions/smart-function/index.ts
+SQL: supabase/web-push.sql
+Frontend: assets/app.js en sw.js
 
-BELANGRIJKE BEVINDING
-De live frontend gebruikt:
-  https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function
-De repository bevat echter broncode voor:
-  supabase/functions/dalton-api/index.ts
-Dat zijn NIET dezelfde functienamen. Daarom mag dalton-api/index.ts niet
-blind over smart-function heen worden geplakt of gepubliceerd.
+1. Maak vooraf een BACK-UP van de huidige Edge Function smart-function (kopieer huidige code naar een veilig eigen bestand). Noteer de huidige productieversie.
+2. Open Supabase > SQL Editor in het project van MELDPUNT VWO. Plak en voer ALLEEN supabase/web-push.sql uit. Dit maakt dm_push_subscriptions aan en verandert geen bestaande tabellen.
+3. Maak een VAPID sleutelpaar met web-push (bijvoorbeeld via Node: npx web-push generate-vapid-keys). Deel de PRIVATE KEY met niemand.
+4. Ga in Supabase naar Edge Functions > Secrets. Voeg toe:
+   VAPID_PUBLIC_KEY = publieke sleutel
+   VAPID_PRIVATE_KEY = geheime sleutel
+   VAPID_SUBJECT = mailto:<geldig-beheer-emailadres>
+   Laat bestaande secrets ongewijzigd.
+5. Open Edge Functions > smart-function > Code. Vervang de bestaande functiecode VOLLEDIG door supabase/functions/smart-function/index.ts en deploy. Gebruik GEEN dalton-api als functienaam.
+6. Controleer health, inloggen, nieuwe testmelding, wijzigen en afmelden voordat de nieuwe frontend wordt gepubliceerd.
+7. Publiceer frontend alleen na succesvolle tests en merge van de PR.
+8. Op iPhone: open meldpuntvwo.nl in Safari, Deel > Zet op beginscherm, open de geïnstalleerde app, log in en klik Meldingen > Aanzetten. Op Windows: log in via ondersteunde browser en zet meldingen aan.
+9. Test een nieuwe algemene melding, spoedmelding en nieuwe toewijzing terwijl de app op de achtergrond staat. Controleer de instellingen per medewerker.
 
-Wat nog nodig is voor echte pushmeldingen:
-1. In het juiste Supabase-project de ACTUELE code van de actieve
-   Edge Function 'smart-function' vaststellen.
-2. In de database een afzonderlijke tabel voor PushSubscription-endpoints
-   maken, gekoppeld aan geauthenticeerde medewerker en apparaat.
-   Inschrijven/uitschrijven uitsluitend na server-side authenticatie.
-   Endpoint en sleutels niet publiek uitlekken; passende RLS.
-3. Server-side VAPID-sleutels genereren; PRIVATE KEY uitsluitend als
-   Supabase Secret opslaan. Nooit in GitHub of de browser.
-4. Backendacties voor aanmelden, afmelden en VAPID public key toevoegen.
-5. Bij een nieuwe melding of nieuwe toewijzing push versturen naar
-   medewerkers die meldingen hebben ingeschakeld, rekening houdend met
-   urgentie-, rol- en toewijzingsinstellingen.
-6. Push per device registreren via PushManager.subscribe in de frontend.
-   Op iOS eerst webapp op beginscherm installeren. Afmelden moet de
-   abonnementen ook server-side verwijderen.
-7. Dubbele notificaties voorkomen (deduplicatie op ticket/event/device),
-   ongeldige endpoints opruimen, geen persoonlijke ticketinhoud meesturen.
-8. Veilig testen met fictieve tickets en testaccounts voordat frontend
-   en backend tegelijk geactiveerd worden.
+Let op: pushbezorging is afhankelijk van browser, Apple/Google/Microsoft pushdiensten en internet. Push is geen gegarandeerd alarmkanaal; bij spoed blijft bellen noodzakelijk.
 
-GEEN SQL OF EDGE FUNCTION UITGEVOERD.
-De bestaande lokale browsermeldingen blijven werken. Deze voorbereidende
-wijziging is bewust niet naar main gemerged om een halve functie niet als
-voltooide pushfunctionaliteit te presenteren.
+TERUGDRAAIEN:
+- Laat de tabel bestaan om gegevensverlies te vermijden.
+- Zet smart-function terug naar de vooraf bewaarde code.
+- Zet frontend terug via GitHub rollback; bestaande ticketgegevens blijven intact.
 
-Vervolg: de actuele 'smart-function'-broncode moet eerst worden vastgesteld.
-Daarna kan een exact .sql-bestand en volledige, op de echte backend passende
-smart-function-code met stap-voor-stap Supabase-instructies worden geleverd.
+Deze instructies zijn voorbereid, maar NIET door de assistent in Supabase uitgevoerd.
