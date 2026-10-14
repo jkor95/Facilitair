@@ -22,3 +22,29 @@ self.addEventListener('notificationclick', event => {
     return clients.openWindow('./');
   }));
 });
+
+/**
+ * Web Push werkt ook wanneer er geen tabblad open is, mits een backend een
+ * geldige PushSubscription heeft geregistreerd en een pushbericht verstuurt.
+ * Laat de backend uitsluitend neutrale teksten sturen; geen ticketgegevens
+ * of persoonsgegevens in push-payloads.
+ */
+self.addEventListener('push', event => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
+  const type = payload && payload.type === 'assignment' ? 'assignment' :
+    payload && payload.type === 'urgent' ? 'urgent' : 'new';
+  const title = type === 'urgent' ? 'SPOED · Meldpunt VWO' :
+    type === 'assignment' ? 'Melding aan jou toegewezen' : 'Nieuwe melding · Meldpunt VWO';
+  const body = type === 'urgent' ? 'Er is een nieuwe spoedmelding. Open Meldpunt VWO.' :
+    type === 'assignment' ? 'Er is een melding aan jou toegewezen.' :
+    'Er is een nieuwe facilitaire melding.';
+  const id = typeof payload.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(payload.id) ? payload.id : 'general';
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: './assets/icon-192.png',
+    badge: './assets/icon-192.png',
+    tag: 'meldpunt-vwo-' + id,
+    data: { url: './' }
+  }));
+});
