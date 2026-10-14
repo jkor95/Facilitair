@@ -1,0 +1,41 @@
+WEB PUSH – MELDPUNT VWO – NOG NIET UITVOEREN
+
+Status: voorbereid, NIET actief. De wijziging in sw.js is alleen de veilige ontvanger voor pushberichten.
+
+BELANGRIJKE BEVINDING
+De live frontend gebruikt:
+  https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function
+De repository bevat echter broncode voor:
+  supabase/functions/dalton-api/index.ts
+Dat zijn NIET dezelfde functienamen. Daarom mag dalton-api/index.ts niet
+blind over smart-function heen worden geplakt of gepubliceerd.
+
+Wat nog nodig is voor echte pushmeldingen:
+1. In het juiste Supabase-project de ACTUELE code van de actieve
+   Edge Function 'smart-function' vaststellen.
+2. In de database een afzonderlijke tabel voor PushSubscription-endpoints
+   maken, gekoppeld aan geauthenticeerde medewerker en apparaat.
+   Inschrijven/uitschrijven uitsluitend na server-side authenticatie.
+   Endpoint en sleutels niet publiek uitlekken; passende RLS.
+3. Server-side VAPID-sleutels genereren; PRIVATE KEY uitsluitend als
+   Supabase Secret opslaan. Nooit in GitHub of de browser.
+4. Backendacties voor aanmelden, afmelden en VAPID public key toevoegen.
+5. Bij een nieuwe melding of nieuwe toewijzing push versturen naar
+   medewerkers die meldingen hebben ingeschakeld, rekening houdend met
+   urgentie-, rol- en toewijzingsinstellingen.
+6. Push per device registreren via PushManager.subscribe in de frontend.
+   Op iOS eerst webapp op beginscherm installeren. Afmelden moet de
+   abonnementen ook server-side verwijderen.
+7. Dubbele notificaties voorkomen (deduplicatie op ticket/event/device),
+   ongeldige endpoints opruimen, geen persoonlijke ticketinhoud meesturen.
+8. Veilig testen met fictieve tickets en testaccounts voordat frontend
+   en backend tegelijk geactiveerd worden.
+
+GEEN SQL OF EDGE FUNCTION UITGEVOERD.
+De bestaande lokale browsermeldingen blijven werken. Deze voorbereidende
+wijziging is bewust niet naar main gemerged om een halve functie niet als
+voltooide pushfunctionaliteit te presenteren.
+
+Vervolg: de actuele 'smart-function'-broncode moet eerst worden vastgesteld.
+Daarna kan een exact .sql-bestand en volledige, op de echte backend passende
+smart-function-code met stap-voor-stap Supabase-instructies worden geleverd.
