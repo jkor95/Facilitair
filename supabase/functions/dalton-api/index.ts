@@ -1,3 +1,4 @@
+import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'npm:@supabase/supabase-js@2.95.0'
 
 const corsHeaders = {
@@ -20,6 +21,66 @@ const db = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
 })
 
 
+
+const PUSH_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || ''
+const PUSH_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || ''
+const PUSH_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:beheer@meldpuntvwo.nl'
+if(PUSH_PUBLIC_KEY&&PUSH_PRIVATE_KEY) webpush.setVapidDetails(PUSH_SUBJECT,PUSH_PUBLIC_KEY,PUSH_PRIVATE_KEY)
+const pushConfigured = ()=>!!(PUSH_PUBLIC_KEY&&PUSH_PRIVATE_KEY)
+const validUrgencies = ['laag','normaal','hoog','spoed']
+function pushPrefs(payload:any){
+ const u:any={},scope:any={}
+ for(const key of validUrgencies)u[key]=payload?.urgencies?.[key]!==false
+ scope.mine=payload?.scope?.mine!==false
+ scope.unassigned=payload?.scope?.unassigned!==false
+ return {urgencies:u,scope}
+}
+async function subscribePush(account:any,payload:any){
+ const sub=payload?.subscription
+ if(!sub||typeof sub.endpoint!=='string'||!/^https:\/\//.test(sub.endpoint)||sub.endpoint.length>2048||typeof sub.keys?.p256dh!=='string'||typeof sub.keys?.auth!=='string')throw new Error('Ongeldig pushabonnement')
+ if(!pushConfigured())throw new Error('Push is nog niet geconfigureerd')
+ const prefs=pushPrefs(payload)
+ const {data:existing,error:lookupError}=await db.from('dm_push_subscriptions').select('account_id').eq('endpoint',sub.endpoint).maybeSingle()
+ if(lookupError)throw lookupError
+ if(existing&&existing.account_id!==account.id)throw new Error('Dit apparaat is al gekoppeld aan een ander account. Schakel meldingen uit op het vorige account.')
+ const {error}=await db.from('dm_push_subscriptions').upsert({account_id:account.id,endpoint:sub.endpoint,subscription:sub, ...prefs,updated_at:new Date().toISOString()},{onConflict:'endpoint'})
+ if(error)throw error
+}
+async function unsubscribePush(account:any,payload:any){
+ const endpoint=String(payload?.endpoint||'')
+ if(!endpoint||endpoint.length>2048)throw new Error('Ongeldig endpoint')
+ const {error}=await db.from('dm_push_subscriptions').delete().eq('account_id',account.id).eq('endpoint',endpoint)
+ if(error)throw error
+}
+async function sendPushForTicket(ticketId:number,urgency:string,assigned:string[],kind:'new'|'assignment',newlyAssigned:string[]=[]){
+ if(!pushConfigured())return
+ try{
+  const settings=await loadSettingsObj()
+  const {data:subs,error}=await db.from('dm_push_subscriptions').select('id,account_id,subscription,urgencies,scope')
+  if(error)throw error
+  if(!subs?.length)return
+  const {data:accounts}=await db.from('dm_accounts').select('id,role,active').in('id',[...new Set(subs.map((x:any)=>x.account_id))])
+  const accountMap=new Map((accounts||[]).map((a:any)=>[a.id,a]))
+  const deliveries:any[]=[]
+  for(const sub of subs){
+   const account=accountMap.get(sub.account_id)
+   if(!account?.active)continue
+   const role=effectiveRole(account,settings)
+   if(!isOperationalRole(role)||permissionsFor(role,settings).notifications===false)continue
+   if(sub.urgencies?.[urgency]===false)continue
+   const mine=assigned.includes(sub.account_id)
+   const unassigned=assigned.length===0
+   if(kind==='assignment'&&!newlyAssigned.includes(sub.account_id))continue
+   if(kind==='new'&&!((mine&&sub.scope?.mine!==false)||(unassigned&&sub.scope?.unassigned!==false)))continue
+   const message=JSON.stringify({type:urgency==='spoed'?'urgent':kind,id:String(ticketId)+'-'+kind})
+   deliveries.push(webpush.sendNotification(sub.subscription,message,{TTL:3600}).catch(async(e:any)=>{
+    if(e?.statusCode===404||e?.statusCode===410)await db.from('dm_push_subscriptions').delete().eq('id',sub.id)
+    else console.error('Web Push delivery',e?.statusCode||e?.message||e)
+   }))
+  }
+  await Promise.allSettled(deliveries)
+ }catch(e){console.error('Web Push dispatch failed',e)}
+}
 const DEFAULT_ROLE_PERMISSIONS:any = {
   facility: { viewAllTickets:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
   concierge: { viewAllTickets:true, viewReporter:true, viewPhoto:true, viewAssignment:true, viewInternalNote:true, viewHistory:false, notifications:true, editTitle:true, editLocation:true, editCategory:true, editUrgency:true, editStatus:true, editPlannedFor:true, editAssignment:true, editInternalNote:true, deleteTicket:false },
@@ -438,6 +499,7 @@ async function createTicket(payload: any, actorAccount: any | null) {
     assigneeNames = routeIds.map(id=>nameMap.get(id) || 'medewerker')
     await history(inserted.id, 'Systeem', null, `Automatisch toegewezen aan ${assigneeNames.join(', ')}`)
   }
+  await sendPushForTicket(inserted.id,urgency,routeIds,'new')
   return { id: ticketNo, dbId: inserted.id, assignee: primary || '', assignees: routeIds, assigneeName: assigneeNames[0] || '', assigneeNames }
 }
 
@@ -486,6 +548,8 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
       changes.push(`zichtbaarheid melderspagina: ${beforeVisible?'Zichtbaar':'Verborgen'} -> ${visible?'Zichtbaar':'Verborgen'}`)
     }
   }
+  let addedAssignees:string[]=[]
+  let finalAssignees:string[]=beforeIds.length?beforeIds:(old.assignee?[old.assignee]:[])
   if ('assignees' in payload || 'assignee' in payload) {
     if (role !== 'admin' && !perms.editAssignment) throw new Error('Geen recht om de toewijzing te wijzigen')
     const requested = Array.isArray(payload.assignees)
@@ -504,6 +568,8 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
       const { error: aErr } = await db.from('dm_ticket_assignments').insert(validIds.map(account_id=>({ticket_id:id,account_id})))
       if (aErr) throw aErr
     }
+    addedAssignees=validIds.filter(x=>!beforeIds.includes(x)&&x!==old.assignee)
+    finalAssignees=validIds
     patch.assignee = validIds[0] || null
     const allIds=[...new Set([...(beforeIds||[]),...(old.assignee?[old.assignee]:[]),...validIds].filter(Boolean))]
     const {data:nameRows}=allIds.length?await db.from('dm_accounts').select('id,name,role').in('id',allIds):{data:[]} as any
@@ -517,6 +583,7 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
   const { error } = await db.from('dm_tickets').update(patch).eq('id', id)
   if (error) throw error
   if (changes.length) await history(id, account.name, account.id, changes.join(' | '))
+  if((patch.status||old.status)!=='done'&&addedAssignees.length)await sendPushForTicket(id,patch.urgency||old.urgency,finalAssignees,'assignment',addedAssignees)
   return { ok:true }
 }
 
@@ -692,6 +759,9 @@ Deno.serve(async (req) => {
       if(token) await db.from('dm_sessions').delete().eq('token_hash',await sha256(token))
       return json({ok:true})
     }
+    if (action === 'push_public_key') return json({ok:true,publicKey:pushConfigured()?PUSH_PUBLIC_KEY:''})
+    if (action === 'push_subscribe') {if(!isOperationalRole(account.role)||permissionsFor(account.role,requestSettings).notifications===false)return json({error:'Geen toegang'},403);await subscribePush(account,payload);return json({ok:true})}
+    if (action === 'push_unsubscribe') {await unsubscribePush(account,payload);return json({ok:true})}
     if (action === 'state') return json({ ok:true, state: await getState(account,requestSettings) })
     if (action === 'duplicate_check') return json({ok:true,items:await findDuplicateTickets(payload)})
     if (action === 'create_ticket') {

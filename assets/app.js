@@ -62,25 +62,68 @@ function notificationPrefKey(){const a=currentAccount();return `dalton_notificat
 function notificationUrgencyKey(){const a=currentAccount();return `dalton_notification_urgencies_${a?.id||'guest'}`}
 function notificationScopeKey(){const a=currentAccount();return `dalton_notification_scope_${a?.id||'guest'}`}
 function notificationScope(){const raw=localStorage.getItem(notificationScopeKey());if(!raw)return {mine:true,unassigned:true};try{return {...{mine:true,unassigned:true},...JSON.parse(raw)}}catch{return {mine:true,unassigned:true}}}
-function setNotificationScope(kind,enabled){const prefs=notificationScope();prefs[kind]=!!enabled;localStorage.setItem(notificationScopeKey(),JSON.stringify(prefs));return updateBadge()}
+function setNotificationScope(kind,enabled){const prefs=notificationScope();prefs[kind]=!!enabled;localStorage.setItem(notificationScopeKey(),JSON.stringify(prefs));syncPushPreferences().catch(console.warn);return updateBadge()}
 function ticketMatchesNotificationScope(t,a=currentAccount()){if(!a||!isOperationalRole(a.role))return false;const scope=notificationScope(),unassigned=t.unassigned===true||(!ticketAssigneeIds(t).length),mine=t.assignedToMe===true||ticketAssigneeIds(t).includes(a.id);if(unassigned)return !!scope.unassigned;return mine?!!scope.mine:false}
 function notificationsEnabled(){const a=currentAccount();if(!a)return false;return localStorage.getItem(notificationPrefKey())==='1'}
 function notificationUrgencies(){const raw=localStorage.getItem(notificationUrgencyKey());if(!raw)return {laag:true,normaal:true,hoog:true,spoed:true};try{return {...{laag:true,normaal:true,hoog:true,spoed:true},...JSON.parse(raw)}}catch{return {laag:true,normaal:true,hoog:true,spoed:true}}}
 function urgencyNotificationsEnabled(urgency){return notificationUrgencies()[urgency]!==false}
-function setUrgencyNotification(urgency,enabled){const prefs=notificationUrgencies();prefs[urgency]=!!enabled;localStorage.setItem(notificationUrgencyKey(),JSON.stringify(prefs));return updateBadge()}
+function setUrgencyNotification(urgency,enabled){const prefs=notificationUrgencies();prefs[urgency]=!!enabled;localStorage.setItem(notificationUrgencyKey(),JSON.stringify(prefs));syncPushPreferences().catch(console.warn);return updateBadge()}
 async function updateBadge(){const a=currentAccount();const operational=isOperationalRole(a?.role),p=operational?rolePermissions(a.role):{};const enabled=operational?p.notifications!==false&&notificationsEnabled():true;const n=operational&&enabled?db.tickets.filter(t=>t.status!=='done'&&urgencyNotificationsEnabled(t.urgency)&&ticketMatchesNotificationScope(t,a)).length:a?.role==='admin'?db.tickets.filter(t=>t.status!=='done').length:0;try{if('setAppBadge'in navigator)n?await navigator.setAppBadge(n):await navigator.clearAppBadge()}catch{}}
-function localNotify(title,body){if(!notificationsEnabled()||!('Notification'in window)||Notification.permission!=='granted')return;try{new Notification(title,{body,icon:'assets/icon-192.png?v=5.8.24'})}catch{}}
-async function setFacilityNotifications(enabled){const a=currentAccount();if(!a||!isOperationalRole(a.role)||rolePermissions(a.role).notifications===false)return;if(enabled&&'Notification'in window&&Notification.permission==='default'){const p=await Notification.requestPermission();if(p!=='granted'){localStorage.setItem(notificationPrefKey(),'0');await updateBadge();throw new Error('Meldingen zijn niet toegestaan op dit apparaat. Sta meldingen toe in de browser- of iPhone-instellingen.')}}if(enabled&&'Notification'in window&&Notification.permission==='denied')throw new Error('Meldingen zijn geblokkeerd op dit apparaat. Zet ze eerst aan in de browser- of iPhone-instellingen.');localStorage.setItem(notificationPrefKey(),enabled?'1':'0');await updateBadge()}
+function localNotify(title,body){
+ // Achtergrond-push wordt door de serviceworker getoond; voorkom dubbele lokale meldingen.
+ if(pushReady||!notificationsEnabled()||!('Notification'in window)||Notification.permission!=='granted)return;
+ try{new Notification(title,{body,icon:'assets/icon-192.png'})}catch{}
+}
+let pushReady=false;
+function pushSupported(){return 'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window&&window.isSecureContext}
+function urlBase64ToUint8Array(base64){const p='='.repeat((4-base64.length%4)%4);const raw=atob((base64+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
+async function syncPushPreferences(){
+ if(!token||!pushSupported()||!isOperationalRole(currentAccount()?.role))return;
+ const reg=await navigator.serviceWorker.ready;
+ const sub=await reg.pushManager.getSubscription();
+ if(!sub)return;
+ await api('push_subscribe',{subscription:sub.toJSON(),urgencies:notificationUrgencies(),scope:notificationScope()});
+ pushReady=true;
+}
+async function enablePush(){
+ if(!pushSupported())throw new Error('Dit apparaat ondersteunt geen Web Push. Op iPhone: open Safari, voeg Meldpunt VWO toe aan het beginscherm en open de geïnstalleerde app.');
+ const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
+ if(permission!=='granted')throw new Error('Sta meldingen toe in de instellingen van dit apparaat.');
+ const key=await api('push_public_key');
+ if(!key.publicKey)throw new Error('Pushmeldingen zijn nog niet geactiveerd op de server.');
+ const reg=await navigator.serviceWorker.ready;
+ let sub=await reg.pushManager.getSubscription();
+ if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(key.publicKey)});
+ await api('push_subscribe',{subscription:sub.toJSON(),urgencies:notificationUrgencies(),scope:notificationScope()});
+ pushReady=true;
+}
+async function disablePush(){
+ if(pushSupported()){
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  if(sub){
+   if(token)await api('push_unsubscribe',{endpoint:sub.endpoint});
+   await sub.unsubscribe();
+  }
+ }
+ pushReady=false;
+}
+async function setFacilityNotifications(enabled){
+ const a=currentAccount();if(!a||!isOperationalRole(a.role)||rolePermissions(a.role).notifications===false)return;
+ if(enabled){await enablePush();localStorage.setItem(notificationPrefKey(),'1')}
+ else {await disablePush();localStorage.setItem(notificationPrefKey(),'0')}
+ await updateBadge();
+}
 function showError(err){const msg=err?.message||(typeof err==='string'?err:(()=>{try{return JSON.stringify(err)}catch{return String(err)}})());alert(msg||'Onbekende fout')}
 function header(){const a=currentAccount();return `<header class="topbar"><div class="brand"><div class="logo"><img src="assets/logo-meldpunt-vwo.png" alt="Meldpunt VWO"></div><div><h1>${esc(C.appName)}</h1><p>${esc(C.schoolName)}</p></div></div><div class="top-actions">${a?`<span class="user-pill"><b>${esc(a.username)}</b> · ${esc(a.name)}</span><button class="btn ghost small" id="refreshBtn">↻ Vernieuwen</button><button class="btn ghost small" id="logoutBtn">Uitloggen</button>`:`<button class="btn secondary small" id="loginBtn">Inloggen</button>`}</div></header>`}
 function shell(content){$('#app').innerHTML=`<div class="shell">${header()}${content}</div>`;$('#loginBtn')?.addEventListener('click',()=>showLogin());$('#logoutBtn')?.addEventListener('click',logout);$('#refreshBtn')?.addEventListener('click',async()=>{try{await refreshState();render()}catch(e){showError(e)}});updateBadge()}
 function publicNav(){const a=currentAccount();return a?`<div class="public-nav"><button class="btn ghost" id="navDashboard">${a.role==='admin'?'Beheer':isOperationalRole(a.role)?roleLabel(a.role):'Mijn account'}</button></div>`:''}
-async function logout(){try{if(token)await api('logout',{},true)}catch{}token='';localStorage.removeItem(TOKEN_KEY);db.currentAccount=null;publicView=true;managementViewMode=false;render()}
+async function logout(){try{await disablePush()}catch(e){console.warn('Push afmelden mislukt',e)}try{if(token)await api('logout',{},true)}catch{}token='';localStorage.removeItem(TOKEN_KEY);db.currentAccount=null;publicView=true;managementViewMode=false;render()}
 
 function showLogin(message=''){
  shell(`<div class="auth-wrap"><section class="card auth-card"><h2>Inloggen bij Meldpunt VWO</h2><p class="sub">Alleen conciërges en facilitair personeel kunnen hier inloggen.</p>${message?`<div class="success">${esc(message)}</div>`:''}<form id="loginForm"><label class="req">Inlognaam</label><input name="username" autocomplete="username" required><label class="req">Wachtwoord</label><input name="password" type="password" autocomplete="current-password" required><div id="loginError"></div><div class="actions"><button class="btn primary" type="submit">Inloggen</button><button class="btn ghost" type="button" id="backPublic">Terug naar melden</button></div><p class="tiny muted login-help">Wachtwoord vergeten? Vraag een resetlink bij de beheerder.</p></form></section></div>`);
  $('#backPublic').onclick=()=>{publicView=true;render()};
- $('#loginForm').onsubmit=async e=>{e.preventDefault();const btn=$('button[type=submit]',e.target);btn.disabled=true;$('#loginError').innerHTML='';try{const f=new FormData(e.target);const out=await api('login',{username:f.get('username'),password:f.get('password')},false);token=out.token;localStorage.setItem(TOKEN_KEY,token);await refreshState();publicView=currentAccount()?.role==='staff';managementViewMode=false;render()}catch(err){$('#loginError').innerHTML=`<div class="errorbox">${esc(err.message)}</div>`}finally{btn.disabled=false}};
+ $('#loginForm').onsubmit=async e=>{e.preventDefault();const btn=$('button[type=submit]',e.target);btn.disabled=true;$('#loginError').innerHTML='';try{const f=new FormData(e.target);const out=await api('login',{username:f.get('username'),password:f.get('password')},false);token=out.token;localStorage.setItem(TOKEN_KEY,token);await refreshState();if(notificationsEnabled())await syncPushPreferences().catch(console.warn);publicView=currentAccount()?.role==='staff';managementViewMode=false;render()}catch(err){$('#loginError').innerHTML=`<div class="errorbox">${esc(err.message)}</div>`}finally{btn.disabled=false}};
 }
 
 function publicAccessGateView(){
@@ -146,7 +189,7 @@ function facilityView(){
  const a=currentAccount();if(!a||!isOperationalRole(a.role)){showLogin();return}
  const p=rolePermissions(a.role),np=notificationUrgencies(),ns=notificationScope(),canSeeTickets=p.viewAllTickets!==false;
  const open=db.tickets.filter(t=>t.status!=='done'),progress=db.tickets.filter(t=>t.status==='progress'),waiting=db.tickets.filter(t=>t.status==='wait'),done=db.tickets.filter(t=>t.status==='done'),spoed=open.filter(t=>t.urgency==='spoed');
- const notifyBlock=p.notifications!==false?`<div class="settings-group"><div><b>Meldingen & badges</b><p class="tiny muted">Instelling voor dit apparaat.</p></div><button class="btn secondary" id="facilityNotifyBtn">${notificationsEnabled()?'Uitzetten':'Aanzetten'}</button></div><div class="settings-group notification-urgencies"><div><b>Urgenties</b><p class="tiny muted">Welke urgenties mogen een melding/badge geven?</p></div><label class="check-row"><input type="checkbox" data-notify-urgency="laag" ${np.laag?'checked':''}> Laag</label><label class="check-row"><input type="checkbox" data-notify-urgency="normaal" ${np.normaal?'checked':''}> Normaal</label><label class="check-row"><input type="checkbox" data-notify-urgency="hoog" ${np.hoog?'checked':''}> Hoog</label><label class="check-row"><input type="checkbox" data-notify-urgency="spoed" ${np.spoed?'checked':''}> Spoed</label></div><div class="settings-group notification-urgencies"><div><b>Toewijzing</b><p class="tiny muted">Wanneer mag een open melding meetellen voor badge/notificatie?</p></div><label class="check-row"><input type="checkbox" data-notify-scope="mine" ${ns.mine?'checked':''}> Aan mij toegewezen</label><label class="check-row"><input type="checkbox" data-notify-scope="unassigned" ${ns.unassigned?'checked':''}> Niet toegewezen</label></div>`:`<div class="info-box">Browsermeldingen en badges zijn voor jouw rol uitgeschakeld door de beheerder.</div>`;
+ const notifyBlock=p.notifications!==false?`<div class="settings-group"><div><b>Meldingen & badges</b><p class="tiny muted">Echte pushmeldingen voor dit apparaat, ook als de app gesloten is. Op iPhone moet de app op het beginscherm staan.</p></div><button class="btn secondary" id="facilityNotifyBtn">${notificationsEnabled()?'Uitzetten':'Aanzetten'}</button></div><div class="settings-group notification-urgencies"><div><b>Urgenties</b><p class="tiny muted">Welke urgenties mogen een melding/badge geven?</p></div><label class="check-row"><input type="checkbox" data-notify-urgency="laag" ${np.laag?'checked':''}> Laag</label><label class="check-row"><input type="checkbox" data-notify-urgency="normaal" ${np.normaal?'checked':''}> Normaal</label><label class="check-row"><input type="checkbox" data-notify-urgency="hoog" ${np.hoog?'checked':''}> Hoog</label><label class="check-row"><input type="checkbox" data-notify-urgency="spoed" ${np.spoed?'checked':''}> Spoed</label></div><div class="settings-group notification-urgencies"><div><b>Toewijzing</b><p class="tiny muted">Wanneer mag een open melding meetellen voor badge/notificatie?</p></div><label class="check-row"><input type="checkbox" data-notify-scope="mine" ${ns.mine?'checked':''}> Aan mij toegewezen</label><label class="check-row"><input type="checkbox" data-notify-scope="unassigned" ${ns.unassigned?'checked':''}> Niet toegewezen</label></div>`:`<div class="info-box">Browsermeldingen en badges zijn voor jouw rol uitgeschakeld door de beheerder.</div>`;
  const sections=[];
  if(canSeeTickets){
   const groups=facilityTicketGroups(db.tickets,a.id),mineCount=groups.mine.length,generalCount=groups.general.length;
@@ -235,6 +278,6 @@ async function handleSetupLink(){const setup=params.get('setup');if(!setup)retur
 
 async function render(){if(await handleSetupLink())return;if(token&&!db.currentAccount){try{await refreshState()}catch{token='';localStorage.removeItem(TOKEN_KEY)}}const a=currentAccount();if(publicView||!a)staffView();else if(a.role==='admin')adminView();else if(isOperationalRole(a.role)&&managementViewMode&&hasManagementAccess(a))delegatedManagementView();else if(isOperationalRole(a.role))facilityView();else staffAccountView()}
 
-async function init(){if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=5.8.24').catch(()=>{});if(!apiConfigured()){shell(`<div class="grid"><section class="card span-12"><h2>Systeemconfiguratie ontbreekt</h2><p>De centrale service is nog niet gekoppeld. Neem contact op met de beheerder.</p></section></div>`,{notice:false});return}try{await api('health',{},false);await refreshPublicConfig();await validateStoredPublicAccess();await refreshPublicOutages();await render();if(token)setInterval(async()=>{try{await refreshState();await updateBadge()}catch{}},30000)}catch(err){shell(`<div class="grid"><section class="card span-12"><h2>Centrale service niet bereikbaar</h2><div class="errorbox">${esc(err.message)}</div><p>Probeer het later opnieuw of neem contact op met de beheerder.</p></section></div>`,{notice:false})}}
+async function init(){if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=5.8.25').catch(()=>{});if(!apiConfigured()){shell(`<div class="grid"><section class="card span-12"><h2>Systeemconfiguratie ontbreekt</h2><p>De centrale service is nog niet gekoppeld. Neem contact op met de beheerder.</p></section></div>`,{notice:false});return}try{await api('health',{},false);await refreshPublicConfig();await validateStoredPublicAccess();await refreshPublicOutages();await render();if(token&&notificationsEnabled())syncPushPreferences().catch(console.warn);if(token)setInterval(async()=>{try{await refreshState();await updateBadge()}catch{}},30000)}catch(err){shell(`<div class="grid"><section class="card span-12"><h2>Centrale service niet bereikbaar</h2><div class="errorbox">${esc(err.message)}</div><p>Probeer het later opnieuw of neem contact op met de beheerder.</p></section></div>`,{notice:false})}}
 init();
 })();

@@ -1,0 +1,30 @@
+WEB PUSH – MELDPUNT VWO – STAPPEN VOOR DE BEHEERDER
+Status: CODE VOORBEREID, NOG NIET GEDEPLOYD. Voer onderstaande stappen pas uit nadat de code is gecontroleerd en getest.
+
+Bestaande actieve Edge Function: smart-function
+GitHub bron voor volledige vervangende functie: supabase/functions/smart-function/index.ts
+SQL: supabase/web-push.sql
+Frontend: assets/app.js en sw.js
+
+1. Maak vooraf een BACK-UP van de huidige Edge Function smart-function (kopieer huidige code naar een veilig eigen bestand). Noteer de huidige productieversie.
+2. Open Supabase > SQL Editor in het project van MELDPUNT VWO. Plak en voer ALLEEN supabase/web-push.sql uit. Dit maakt dm_push_subscriptions aan en verandert geen bestaande tabellen.
+3. Maak een VAPID sleutelpaar met web-push (bijvoorbeeld via Node: npx web-push generate-vapid-keys). Deel de PRIVATE KEY met niemand.
+4. Ga in Supabase naar Edge Functions > Secrets. Voeg toe:
+   VAPID_PUBLIC_KEY = publieke sleutel
+   VAPID_PRIVATE_KEY = geheime sleutel
+   VAPID_SUBJECT = mailto:<geldig-beheer-emailadres>
+   Laat bestaande secrets ongewijzigd.
+5. Open Edge Functions > smart-function > Code. Vervang de bestaande functiecode VOLLEDIG door supabase/functions/smart-function/index.ts en deploy. Gebruik GEEN dalton-api als functienaam.
+6. Controleer health, inloggen, nieuwe testmelding, wijzigen en afmelden voordat de nieuwe frontend wordt gepubliceerd.
+7. Publiceer frontend alleen na succesvolle tests en merge van de PR.
+8. Op iPhone: open meldpuntvwo.nl in Safari, Deel > Zet op beginscherm, open de geïnstalleerde app, log in en klik Meldingen > Aanzetten. Op Windows: log in via ondersteunde browser en zet meldingen aan.
+9. Test een nieuwe algemene melding, spoedmelding en nieuwe toewijzing terwijl de app op de achtergrond staat. Controleer de instellingen per medewerker.
+
+Let op: pushbezorging is afhankelijk van browser, Apple/Google/Microsoft pushdiensten en internet. Push is geen gegarandeerd alarmkanaal; bij spoed blijft bellen noodzakelijk.
+
+TERUGDRAAIEN:
+- Laat de tabel bestaan om gegevensverlies te vermijden.
+- Zet smart-function terug naar de vooraf bewaarde code.
+- Zet frontend terug via GitHub rollback; bestaande ticketgegevens blijven intact.
+
+Deze instructies zijn voorbereid, maar NIET door de assistent in Supabase uitgevoerd.
