@@ -40,6 +40,9 @@ async function subscribePush(account:any,payload:any){
  if(!sub||typeof sub.endpoint!=='string'||!/^https:\/\//.test(sub.endpoint)||sub.endpoint.length>2048||typeof sub.keys?.p256dh!=='string'||typeof sub.keys?.auth!=='string')throw new Error('Ongeldig pushabonnement')
  if(!pushConfigured())throw new Error('Push is nog niet geconfigureerd')
  const prefs=pushPrefs(payload)
+ const {data:existing,error:lookupError}=await db.from('dm_push_subscriptions').select('account_id').eq('endpoint',sub.endpoint).maybeSingle()
+ if(lookupError)throw lookupError
+ if(existing&&existing.account_id!==account.id)throw new Error('Dit apparaat is al gekoppeld aan een ander account. Schakel meldingen uit op het vorige account.')
  const {error}=await db.from('dm_push_subscriptions').upsert({account_id:account.id,endpoint:sub.endpoint,subscription:sub, ...prefs,updated_at:new Date().toISOString()},{onConflict:'endpoint'})
  if(error)throw error
 }
