@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.95.0'
+import webpush from 'npm:web-push@3.6.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,8 @@ const secretKeys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}')
 const SUPABASE_SECRET_KEY = secretKeys.default || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const MASTER_KEY_B64 = Deno.env.get('DALTON_MASTER_KEY') || ''
 const APP_BASE_URL = Deno.env.get('DALTON_APP_URL') || ''
+
+if (new URL(SUPABASE_URL).hostname !== 'xmmrplvhkfvyfqwjrugl.supabase.co') throw new Error('Verkeerd Supabase-project: uitsluitend Dalton meldpunt toegestaan')
 
 if (!SUPABASE_SECRET_KEY) throw new Error('Supabase secret key ontbreekt')
 if (!MASTER_KEY_B64) throw new Error('DALTON_MASTER_KEY ontbreekt')
@@ -264,6 +267,7 @@ async function getState(account: any, existingSettings?: any) {
     }
   }
   const perms = permissionsFor(role, settingsObj)
+  const onWayRows = await loadOnWayRows()
   const adminFns = adminFunctionsFor(clientAccount, settingsObj)
   const [{ data: accounts }, { data: tickets }, { data: histories }, { data: routing }, { data: routingMembers }, { data: ticketAssignments }, { data: audits }] = await Promise.all([
     db.from('dm_accounts').select('*').order('name'),
@@ -333,6 +337,7 @@ async function getState(account: any, existingSettings?: any) {
       unassigned: fullIds.length === 0,
       internalNote: role === 'admin' || perms.viewInternalNote ? t.internal_note : '',
       history: role === 'admin' || perms.viewHistory ? (histBy.get(t.id) || []) : [],
+      onWay: onWayRows.filter((r:any)=>r.ticketId===t.id && fullIds.includes(r.accountId) && (showAssignment||r.accountId===account.id)).map(({ticketId,...row}:any)=>row),
     }
   }))
   const current = safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : '')
@@ -606,6 +611,83 @@ async function findDuplicateTickets(payload:any, publicOnly=false){
   return rows.slice(0,5).map(({score,...item}:any)=>item)
 }
 
+// Web Push gebruikt uitsluitend dit project en een eigen VAPID-sleutelpaar.
+function pushUuid(value:any){
+  const text=String(value||'')
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text))throw new Error('Ongeldig verzoek- of apparaat-id')
+  return text
+}
+function pushSubscription(value:any){
+  if(!value||typeof value.endpoint!=='string'||value.endpoint.length>2048)throw new Error('Ongeldig pushabonnement')
+  const url=new URL(value.endpoint)
+  const host=url.hostname
+  const allowed=host==='fcm.googleapis.com'||host==='web.push.apple.com'||host==='updates.push.services.mozilla.com'||host.endsWith('.notify.windows.com')
+  if(url.protocol!=='https:'||url.port||url.username||url.password||url.hash||!allowed)throw new Error('Onbekende pushdienst')
+  const key=String(value.keys?.p256dh||''),auth=String(value.keys?.auth||'')
+  if(!/^B[A-Za-z0-9_-]{86}={0,1}$/.test(key))throw new Error('Ongeldige pushsleutel')
+  if(!/^[A-Za-z0-9_-]{22}={0,2}$/.test(auth))throw new Error('Ongeldige pushauthenticatie')
+  const expiration=value.expirationTime==null?null:Number(value.expirationTime)
+  if(expiration!==null&&(!Number.isFinite(expiration)||expiration<=Date.now()||expiration>Date.now()+10*365*86400000))throw new Error('Verlopen pushabonnement')
+  return {endpoint:url.href,p256dh:key,auth,expiration:expiration===null?null:new Date(expiration).toISOString()}
+}
+function vapidConfig(){
+  if(Deno.env.get('DM_WEB_PUSH_ENABLED')!=='true')return null
+  const publicKey=Deno.env.get('DM_VAPID_PUBLIC_KEY')||'',privateKey=Deno.env.get('DM_VAPID_PRIVATE_KEY')||'',subject=Deno.env.get('DM_VAPID_SUBJECT')||''
+  if(!publicKey||!privateKey||!/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subject))return null
+  return {publicKey,privateKey,subject}
+}
+async function loadOnWayRows(){
+  const {data,error}=await db.from('dm_ticket_on_way')
+    .select('ticket_id,account_id,since,dm_accounts!inner(name,active),dm_tickets!inner(status)')
+    .eq('active',true).eq('dm_accounts.active',true).neq('dm_tickets.status','done').order('since')
+  if(error)throw new Error('Onderwegregistratie niet beschikbaar; controleer de v5.9.0-migratie')
+  return (data||[]).map((r:any)=>({ticketId:r.ticket_id,accountId:r.account_id,name:r.dm_accounts.name,since:r.since}))
+}
+async function onWayState(account:any,settings:any){
+  const perms=permissionsFor(account.role,settings)
+  if(account.role!=='admin'&&(!isOperationalRole(account.role)||perms.viewAllTickets===false))return []
+  const rows=(await loadOnWayRows()).filter((r:any)=>account.role==='admin'||perms.viewAssignment||r.accountId===account.id)
+  if(!rows.length)return []
+  const ids=[...new Set(rows.map((r:any)=>r.ticketId))]
+  const [{data:assignments,error:ae},{data:tickets,error:te}]=await Promise.all([
+    db.from('dm_ticket_assignments').select('ticket_id,account_id').in('ticket_id',ids),
+    db.from('dm_tickets').select('id,assignee').in('id',ids),
+  ])
+  if(ae||te)throw new Error('Onderwegregistratie kon niet worden geladen')
+  return rows.filter((r:any)=>{const assigned=(assignments||[]).filter((a:any)=>a.ticket_id===r.ticketId);return assigned.length?assigned.some((a:any)=>a.account_id===r.accountId):(tickets||[]).some((t:any)=>t.id===r.ticketId&&t.assignee===r.accountId)})
+}
+async function deliverPushEvent(eventId:string,actorId:string){
+  const vapid=vapidConfig()
+  if(!vapid)return {sent:0,failed:0,configured:false}
+  const {error:expiryError}=await db.from('dm_push_subscriptions').delete().lt('expiration_time',new Date().toISOString())
+  if(expiryError)throw new Error('Verlopen pushregistraties konden niet worden opgeschoond')
+  const {data,error}=await db.rpc('dm_claim_push_deliveries',{p_event:eventId,p_actor:actorId})
+  if(error)throw new Error('Pushverzending kon niet worden gestart')
+  let sent=0,failed=0
+  const rows=data||[]
+  for(let offset=0;offset<rows.length;offset+=5){
+    await Promise.all(rows.slice(offset,offset+5).map(async(row:any)=>{
+      let state='failed'
+      try{
+        const subscription=pushSubscription({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}})
+        await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify(row.payload),
+          {vapidDetails:vapid,TTL:3600,urgency:'high',timeout:8000})
+        sent++;state='sent'
+      }catch(e){
+        failed++
+        const status=(e as any)?.statusCode
+        if(status===404||status===410){
+          // Alleen de nog identieke registratie wissen; een gelijktijdige heraanmelding behouden.
+          await db.from('dm_push_subscriptions').delete().eq('id',row.subscription_id).eq('endpoint',row.endpoint).eq('p256dh',row.p256dh).eq('auth',row.auth).eq('updated_at',row.subscription_version)
+        }
+        // Geen endpoints, sleutels, providerbody's of persoonsgegevens in logs.
+      }
+      await db.from('dm_push_deliveries').update({state,updated_at:new Date().toISOString()}).eq('event_id',eventId).eq('subscription_id',row.subscription_id).eq('state','claimed')
+    }))
+  }
+  return {sent,failed,configured:true}
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error:'Alleen POST toegestaan' },405)
@@ -614,7 +696,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.817 })
+    if (action === 'health') return json({ ok:true, version:5.90,features:{onWay:1,webPush:1} })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])
@@ -687,6 +769,42 @@ Deno.serve(async (req) => {
     const requestSettings = await loadSettingsObj()
     const account = { ...rawAccount, role:effectiveRole(rawAccount,requestSettings) }
 
+    if(action==='on_way_state')return json({ok:true,rows:await onWayState(account,requestSettings)})
+    if(action==='set_on_way'){
+      const perms=permissionsFor(account.role,requestSettings)
+      if(account.role!=='admin'&&(!isOperationalRole(account.role)||perms.viewAllTickets===false||!perms.editStatus))return json({error:'Geen afhandelrecht'},403)
+      const ticketId=Number(payload.dbId),requestId=pushUuid(payload.requestId)
+      if(!Number.isSafeInteger(ticketId)||ticketId<=0||typeof payload.active!=='boolean')return json({error:'Ongeldige onderweg-actie'},400)
+      const {data,error}=await db.rpc('dm_set_on_way',{p_actor:account.id,p_ticket:ticketId,p_active:payload.active,p_request:requestId})
+      if(error)return json({error:'Onderweg wijzigen niet toegestaan of tijdelijk niet beschikbaar'},403)
+      const delivery=payload.active?await deliverPushEvent(requestId,account.id):null
+      return json({ok:true,...data,delivery,state:await getState(account,requestSettings)})
+    }
+    if(['push_config','push_register','push_unregister','push_test'].includes(action)){
+      const perms=permissionsFor(account.role,requestSettings)
+      if(account.role!=='admin'&&(!isOperationalRole(account.role)||perms.viewAllTickets===false||perms.notifications===false))return json({error:'Geen toegang tot pushmeldingen'},403)
+      if(action==='push_config')return json({ok:true,configured:!!vapidConfig(),publicKey:vapidConfig()?.publicKey||''})
+      const deviceId=pushUuid(payload.deviceId)
+      if(action==='push_unregister'){
+        const {error}=await db.from('dm_push_subscriptions').delete().eq('account_id',account.id).eq('device_id',deviceId)
+        if(error)throw new Error('Afmelden van push mislukt')
+        return json({ok:true})
+      }
+      if(!vapidConfig())return json({error:'Pushmeldingen zijn nog niet geconfigureerd door de beheerder'},503)
+      if(action==='push_register'){
+        let sub
+        try{sub=pushSubscription(payload.subscription)}catch{return json({error:'Ongeldig pushabonnement of onbekende pushdienst'},400)}
+        const {error}=await db.rpc('dm_register_push',{p_actor:account.id,p_device:deviceId,p_hash:await sha256(sub.endpoint),p_endpoint:sub.endpoint,p_p256dh:sub.p256dh,p_auth:sub.auth,p_expiration:sub.expiration})
+        if(error)throw new Error('Aanmelden van push mislukt')
+        return json({ok:true})
+      }
+      const requestId=pushUuid(payload.requestId)
+      const {error}=await db.rpc('dm_test_push',{p_actor:account.id,p_device:deviceId,p_request:requestId})
+      if(error)return json({error:'Test niet toegestaan: meld dit apparaat aan en wacht 10 seconden tussen tests'},400)
+      const delivery=await deliverPushEvent(requestId,account.id)
+      return json({ok:true,delivery})
+    }
+
     if (action === 'logout') {
       const h=req.headers.get('Authorization')||''; const token=h.startsWith('Bearer ')?h.slice(7).trim():''
       if(token) await db.from('dm_sessions').delete().eq('token_hash',await sha256(token))
@@ -701,7 +819,7 @@ Deno.serve(async (req) => {
     if (action === 'update_ticket') {
       if (!(account.role === 'admin' || isOperationalRole(account.role))) return json({error:'Geen toegang'},403)
       const result = await updateTicket(account,payload,requestSettings)
-      return json({ok:true,...result,state:await getState(account)})
+      return json({...result,state:await getState(account)})
     }
     if (action === 'delete_ticket') {
       const id=Number(payload.dbId)
@@ -741,7 +859,7 @@ Deno.serve(async (req) => {
       if(!hasAdminFunction(account,requestSettings,'manageRouting'))return json({error:'Geen toegang'},403)
       const category=String(payload.category||'')
       const all=!!payload.all
-      const accountIds=Array.isArray(payload.accountIds)?[...new Set(payload.accountIds.map((x:any)=>String(x)).filter(Boolean))]:[]
+      const accountIds:string[]=Array.isArray(payload.accountIds)?[...new Set<string>(payload.accountIds.map((x:any)=>String(x)).filter(Boolean))]:[]
       await db.from('dm_routing').upsert({category,account_id:all?null:(accountIds[0]||null),assign_all:all,updated_at:new Date().toISOString()})
       await db.from('dm_routing_members').delete().eq('category',category)
       if(!all&&accountIds.length){const {error}=await db.from('dm_routing_members').insert(accountIds.map((accountId:string)=>({category,account_id:accountId})));if(error)throw error}

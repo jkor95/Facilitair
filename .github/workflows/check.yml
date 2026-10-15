@@ -22,4 +22,45 @@ jobs:
       - name: Controleer website zonder productieverbinding
         run: |
           node scripts/check.cjs
-          node --test scripts/check.test.cjs
+          node --test scripts/*.test.cjs
+
+  push-backend:
+    name: Onderweg en Web Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: meldpunt_push_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d meldpunt_push_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.5.4'
+      - name: Controleer volledige smart-function
+        run: deno check --no-lock supabase/functions/dalton-api/index.ts
+      - name: Test migratie en gelijktijdige requests met uitsluitend lokale fixtures
+        run: node scripts/test-push-db.cjs
+      - name: Test versleutelde Web Push met een lokale TLS-pushdienst
+        run: |
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -days 1 -nodes -keyout /tmp/dm-push-test-key.pem -out /tmp/dm-push-test-cert.pem -subj /CN=localhost -addext subjectAltName=IP:127.0.0.1,DNS:localhost -addext basicConstraints=critical,CA:FALSE -addext extendedKeyUsage=serverAuth
+          deno test --no-lock --cert=/tmp/dm-push-test-cert.pem --allow-net=127.0.0.1 --allow-env=ECE_KEYLOG,NODE_DEBUG --allow-read=/tmp scripts/push-crypto.test.ts -- /tmp/dm-push-test-cert.pem /tmp/dm-push-test-key.pem
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test frontend en serviceworker zonder echte pushproviders
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.62.0
+          python scripts/push.browser.test.py

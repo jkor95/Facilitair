@@ -1,0 +1,157 @@
+MELDPUNT VWO v5.9.0 – ONDERWEG EN WEB PUSH
+Installatievolgorde: eerst backend installeren en bevestigen, daarna frontend publiceren.
+
+1. PROJECT EN BACK-UP
+Open Supabase en controleer eerst:
+  Projectnaam: Dalton meldpunt
+  Project-ID: xmmrplvhkfvyfqwjrugl
+  Functie: smart-function
+Gebruik GEEN project, VAPID-sleutels, abonnementen of functies van LCP,
+JK Works of Sport. De nieuwe smart-function weigert een ander project-ID.
+
+Maak voor installatie een databaseback-up volgens het bestaande beheerproces.
+Bewaar ook de volledige huidige smart-function-code en de huidige secretNAMEN
+op een veilige beheerlocatie. Zet geen secrets of gegevens in GitHub/chat.
+Vergelijk de huidige smart-function met de voorgaande repositoryversie van
+supabase/functions/dalton-api/index.ts. Zijn er niet-verwerkte productieaanpassingen?
+STOP dan en laat die eerst samenvoegen; overschrijf ze niet met deze versie.
+De website-herstel-tag v5.8.24 bewaart uitsluitend websitecode, geen database.
+
+2. SQL INSTALLEREN (VOOR DE EDGE FUNCTION)
+Supabase > SQL Editor > New query.
+Plak de VOLLEDIGE inhoud van:
+  supabase/UPGRADE-v5.9.0-ONDERWEG-PUSH.sql
+Controleer nogmaals het project-ID en kies Run.
+Deze migratie is additief en herhaalbaar. Voer GEEN schema.sql of andere oude
+eenmalige migraties opnieuw uit. Bestaande tickets, accounts en toewijzingen
+worden niet gewijzigd. De migratie voegt vier private tabellen en zes
+server-only functies toe; alle browserrollen hebben hierop geen rechten.
+
+Nieuwe tabellen:
+  dm_push_subscriptions: één endpoint/eigenaar, apparaten en browser-pushsleutels.
+  dm_ticket_on_way: eigen onderwegregistratie per ticket en medewerker.
+  dm_push_events: duurzame verzoek-ID's voor idempotentie.
+  dm_push_deliveries: unieke gebeurtenis/apparaat-combinaties en verzendresultaat.
+Alle toegang loopt via de bestaande dm_sessions-authenticatie in smart-function.
+Er worden geen anon-policies, nieuwe Supabase Auth-accounts of publicaties geopend.
+
+3. EIGEN VAPID-SLEUTELS MAKEN
+Genereer EEN nieuw sleutelpaar uitsluitend voor Meldpunt VWO op een vertrouwde
+beheercomputer met Node.js:
+  npx --yes web-push@3.6.7 generate-vapid-keys --json
+De private sleutel is geheim. Bewaar deze veilig; stuur hem niet naar Codex/chat.
+Gebruik nadrukkelijk niet de bestaande LCP-sleutels.
+
+Supabase > Edge Functions > Secrets:
+  DM_VAPID_PUBLIC_KEY   = publicKey uit de uitvoer
+  DM_VAPID_PRIVATE_KEY  = privateKey uit de uitvoer
+  DM_VAPID_SUBJECT      = mailto: gevolgd door het functionele beheermailadres
+  DM_WEB_PUSH_ENABLED  = true
+Dit zijn nieuwe secrets. Bestaande secrets, waaronder DALTON_MASTER_KEY en de
+Supabase-sleutels, ongewijzigd laten. Verander ook geen bestaande LCP-secrets.
+De public key gaat via een geauthenticeerde API naar de browser. De private
+key blijft alleen server-side. DM_WEB_PUSH_ENABLED=false is de noodstop.
+
+4. SMART-FUNCTION BIJWERKEN
+Supabase > Edge Functions > smart-function > Code.
+Bewaar/exporteer eerst de oude VOLLEDIGE code.
+Vervang index.ts door de VOLLEDIGE inhoud van:
+  supabase/functions/dalton-api/index.ts
+Dit is één zelfstandig bronbestand met gepinde npm-imports; geen extra modules
+of bestanden uit een ander project kopiëren. Deploy deze functie handmatig.
+Behoud de bestaande gateway-/JWT-instelling en dm_sessions-authenticatie;
+deze app gebruikt eigen sessietokens. Verander geen rechten om een fout te omzeilen.
+De oude GitHub-frontend blijft met deze nieuwe backend werken.
+
+5. BACKEND CONTROLEREN VOOR PUBLICATIE
+Controleer dat SQL en de functie zonder fout zijn geïnstalleerd en dat de
+bestaande login, rollen, ticketdetails, foto's en historie blijven werken.
+Een openbare POST met {"action":"health"} naar
+https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function
+moet features.onWay=1 en features.webPush=1 teruggeven.
+Dit bevestigt functieondersteuning, NIET dat push al op een apparaat werkt.
+Een geauthenticeerde push_config moet configured=true en een publicKey geven.
+Controleer alleen aanwezigheid/status; deel geen sessietokens of secretwaarden.
+
+Bevestig vervolgens dat deze stappen in het juiste project zijn uitgevoerd.
+Pas daarna de frontend-PR naar main samenvoegen en de GitHub Pages-deployment
+van de exacte mergecommit controleren. Publiceer de afhankelijke frontend
+niet vóór deze bevestiging. Laat LCP volledig ongemoeid.
+
+6. APPARATEN AANMELDEN EN GECONTROLEERD TESTEN
+Na frontendpublicatie: open Meldpunt VWO, log in en open Mijn account.
+Bij Hoofdbeheer staan de apparaatopties onder Algemene instellingen.
+iPhone/iPad: iOS/iPadOS 16.4 of nieuwer, Safari > Deel > Zet op beginscherm.
+Open de app vanaf het beginscherm; gebruik dus de geïnstalleerde webapp.
+Kies Pushmeldingen inschakelen en geef toestemming. Kies Test pushmelding;
+die gaat uitsluitend naar het eigen apparaat. Afmelden en opnieuw aanmelden
+kan via dezelfde instellingen. Lokale meldingen/badges blijven apart instelbaar.
+
+Controleer met twee beheerde TESTaccounts en een fictief ticket, uitsluitend
+toegewezen aan deze testaccounts (geen echte collega-apparaten):
+- Hoog/Spoed + Ik ben onderweg => andere toegewezen actieve testmedewerker
+  ontvangt één push per aangemeld apparaat; de actor ontvangt niets van zichzelf.
+- Laag/Normaal => onderweg zichtbaar, geen push.
+- Meerdere medewerkers kunnen onafhankelijk onderweg zijn.
+- Herhaald klikken, herladen en retry => geen duplicaten.
+- Intrekken => alleen eigen status weg, geen push.
+- Afgerond/niet toegewezen/geen afhandelrecht => geen nieuwe onderweg-actie.
+- Push aantikken => juiste melding, zo nodig eerst inloggen; geen toegang
+  betekent geen ticketdetails. Alle bestaande ticketinformatie blijft behouden.
+- App sluiten, iPhone vergrendelen en push testen op de gecontroleerde devices.
+  Dit vereist echte apparaten; lokale mocks bewijzen dit niet.
+- LCP-knop en de bestaande LCP-afhandeling blijven ongewijzigd werken.
+
+7. WERKING EN BEPERKINGEN
+Onderweg verandert geen ticketstatus of toewijzing. Alleen de eigen rij wijzigt.
+Status/historie/audit en de ontvangersqueue worden in één SQL-transactie gemaakt.
+De server controleert actieve accounts, bestaande zicht-/afhandelrechten,
+toewijzingen en urgentie opnieuw. De browser kiest geen actor of ontvangers.
+Zonder toewijzingszicht worden geen namen van collega's via status of push onthuld.
+Andere zichtbare werkpagina's verversen onderweg-status iedere 5 seconden,
+ook in een open detailvenster zonder onopgeslagen invoer te verliezen.
+Bij terugkeer naar de app wordt meteen gesynchroniseerd. Geen publieke
+Realtime-toegang: de bestaande custom authenticatie blijft behouden.
+
+Web Push werkt onafhankelijk van een open pagina. Ondersteuning, toestemming,
+OS-instellingen, netwerk en pushprovider bepalen de uiteindelijke aflevering.
+Meldingtekst (naam, locatie, ticketnummer) kan op het vergrendelscherm staan;
+gebruik de normale apparaatinstellingen als dit niet zichtbaar mag zijn.
+Alleen onderweg-activeren op Hoog/Spoed en een eigen apparaattest maken push.
+Geen extra push voor tickets aanmaken, statuswijzigingen of intrekken.
+
+Een unieke queueclaim voorkomt dubbele verzendpogingen. De serviceworker
+onthoudt gebeurtenis-ID's ook na herstart en onderdrukt dubbele weergave.
+Bij een onzekere netwerkuitkomst wordt niet blind opnieuw verzonden: dit
+voorkomt duplicaten, maar absolute aflevering kan niet worden gegarandeerd.
+Queue-items ouder dan één uur vervallen. Verlopen abonnementen en 404/410-
+endpoints worden verwijderd; tijdelijke providerfouten verwijderen geen
+geldig abonnement. Een normale retry of heraanmelding kopieert geen events.
+Uitschakelen verwijdert alleen de eigen apparaatregistratie. Uitloggen meldt
+de eigen browser af. Sessieverloop vereist opnieuw inloggen voor ticketdetails.
+
+8. HERSTEL ZONDER GEGEVENSVERLIES
+Bij problemen: zet DM_WEB_PUSH_ENABLED=false in dit project om nieuwe verzending
+te stoppen. Lopende reeds geaccepteerde pushberichten zijn niet terug te halen.
+Herstel de website via een nieuwe herstelbranch/PR vanaf tag v5.8.24.
+Herstel zo nodig de eerder geëxporteerde volledige smart-function.
+Laat de additieve tabellen voorlopig staan: bestaande appcode gebruikt ze niet
+en zo blijven nieuwe audit-/onderweggegevens behouden. Geen DROP/TRUNCATE of
+databaseherstel zonder aparte expliciete toestemming. Geen history herschrijven.
+
+9. HERHAALBARE ONTWIKKELCONTROLES
+  node scripts/check.cjs
+  node --test scripts/*.test.cjs
+  deno check --no-lock supabase/functions/dalton-api/index.ts
+Lokale PostgreSQL 17-database meldpunt_push_test met uitsluitend fixtures:
+  node scripts/test-push-db.cjs
+De cloudfixturecontainer heet meldpunt-push-fixtures; daarbij:
+  node scripts/test-push-db.cjs --docker
+Browser: Python 3 + playwright==1.62.0 en Chromium/Google Chrome:
+  python3 scripts/push.browser.test.py
+Versleutelde TLS-test en alle lokale checks worden ook door de PR-workflow
+uitgevoerd. Deze tests maken geen contact met echte pushdiensten of Supabase.
+
+Uitvoering in deze Codex-omgeving geeft geen bewijs van productie-installatie,
+publicatie of ontvangst op een gesloten/vergrendelde iPhone. Rapporteer deze
+uitkomsten afzonderlijk zodra ze daadwerkelijk zijn gecontroleerd.
