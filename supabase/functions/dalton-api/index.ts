@@ -613,6 +613,18 @@ async function findDuplicateTickets(payload:any, publicOnly=false){
   return rows.slice(0,5).map(({score,...item}:any)=>item)
 }
 
+const DEFAULT_PUSH_URGENCIES={laag:false,normaal:false,hoog:true,spoed:true}
+function pushUrgencies(value:any){
+  if(!value||Array.isArray(value)||typeof value!=='object'||Object.keys(value).length!==4
+    ||!Object.keys(DEFAULT_PUSH_URGENCIES).every(key=>typeof value[key]==='boolean'))throw new Error('Kies voor iedere urgentie aan of uit')
+  return {laag:value.laag,normaal:value.normaal,hoog:value.hoog,spoed:value.spoed}
+}
+async function ownPushUrgencies(accountId:string){
+  const {data,error}=await db.from('dm_push_preferences').select('laag,normaal,hoog,spoed').eq('account_id',accountId).maybeSingle()
+  if(error)throw new Error('Pushvoorkeuren konden niet worden geladen')
+  return data?pushUrgencies(data):{...DEFAULT_PUSH_URGENCIES}
+}
+
 // Web Push gebruikt uitsluitend dit project en een eigen VAPID-sleutelpaar.
 function pushUuid(value:any){
   const text=String(value||'')
@@ -704,7 +716,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.92,features:{onWay:1,webPush:1,urgentBroadcast:1,onWayUnassigned:1} })
+    if (action === 'health') return json({ ok:true, version:5.93,features:{onWay:1,webPush:1,urgentBroadcast:1,onWayUnassigned:1,pushUrgencies:1} })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])
@@ -788,10 +800,19 @@ Deno.serve(async (req) => {
       const delivery=payload.active?await deliverPushEvent(requestId,account.id):null
       return json({ok:true,...data,delivery,state:await getState(account,requestSettings)})
     }
-    if(['push_config','push_register','push_unregister','push_test'].includes(action)){
+    if(['push_config','push_register','push_unregister','push_test','push_preferences'].includes(action)){
       const perms=permissionsFor(account.role,requestSettings)
       if(account.role!=='admin'&&(!isOperationalRole(account.role)||perms.viewAllTickets===false||perms.notifications===false))return json({error:'Geen toegang tot pushmeldingen'},403)
       if(action==='push_config')return json({ok:true,configured:!!vapidConfig(),publicKey:vapidConfig()?.publicKey||''})
+      if(action==='push_preferences'){
+        if(Object.prototype.hasOwnProperty.call(payload,'urgencies')){
+          let urgencies
+          try{urgencies=pushUrgencies(payload.urgencies)}catch{return json({error:'Kies voor Laag, Normaal, Hoog en Spoed aan of uit'},400)}
+          const {error}=await db.from('dm_push_preferences').upsert({account_id:account.id,...urgencies,updated_at:new Date().toISOString()})
+          if(error)throw new Error('Pushvoorkeuren opslaan mislukt')
+        }
+        return json({ok:true,urgencies:await ownPushUrgencies(account.id)})
+      }
       const deviceId=pushUuid(payload.deviceId)
       if(action==='push_unregister'){
         const {error}=await db.from('dm_push_subscriptions').delete().eq('account_id',account.id).eq('device_id',deviceId)

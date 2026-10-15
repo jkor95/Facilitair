@@ -41,6 +41,10 @@ Object.defineProperty(navigator,'serviceWorker',{value:{register:async()=>regist
 def frontend_tests(browser,base):
     state=state_fixture();calls=[];errors=[];external=[];push_events=set();registrations={};test_events=set();dialogs=[]
     unassigned_supported=True
+    urgency_supported=True
+    preferences=dict(laag=False,normaal=False,hoog=True,spoed=True)
+    preference_failure=False
+    preference_read_failure=False
     context=browser.new_context(service_workers='block')
     context.add_init_script(PUSH_STUB+"localStorage.setItem('dalton_meldpunt_v5_token','fixture-token');")
     def route(route):
@@ -48,7 +52,7 @@ def frontend_tests(browser,base):
         if req.url.startswith(base):route.continue_();return
         if req.url!='https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function':external.append(req.url);route.abort();return
         body=req.post_data_json;calls.append(body);action=body['action'];payload=body.get('payload',{})
-        if action=='health':out=dict(ok=True,features=dict(onWay=1,webPush=1,onWayUnassigned=1 if unassigned_supported else 0))
+        if action=='health':out=dict(ok=True,features=dict(onWay=1,webPush=1,onWayUnassigned=1 if unassigned_supported else 0,pushUrgencies=1 if urgency_supported else 0))
         elif action=='state':out=dict(state=state)
         elif action=='login':out=dict(token='fixture-token')
         elif action=='public_config':out=dict(settings=dict(publicAccessGateEnabled=False))
@@ -64,6 +68,16 @@ def frontend_tests(browser,base):
             elif not payload['active']:t['onWay']=[r for r in t['onWay'] if r['accountId']!='me']
             out=dict(state=state,delivery=dict(configured=True,sent=1 if payload['requestId'] in push_events else 0,failed=0))
         elif action=='push_config':out=dict(configured=True,publicKey=PUBLIC_KEY)
+        elif action=='push_preferences':
+            if preference_read_failure:
+                route.fulfill(status=500,content_type='application/json',body=json.dumps(dict(error='Fixture laden mislukt')));return
+            if preference_failure and 'urgencies' in payload:
+                route.fulfill(status=500,content_type='application/json',body=json.dumps(dict(error='Fixture opslaan mislukt')));return
+            if 'urgencies' in payload:
+                assert set(payload)=={'urgencies'}
+                assert set(payload['urgencies'])=={'laag','normaal','hoog','spoed'}
+                preferences.update(payload['urgencies'])
+            out=dict(ok=True,urgencies=preferences)
         elif action=='push_register':registrations[payload['subscription']['endpoint']]=payload['deviceId'];out=dict(ok=True)
         elif action=='push_unregister':registrations.clear();out=dict(ok=True)
         elif action=='push_test':test_events.add(payload['requestId']);out=dict(delivery=dict(sent=1,failed=0))
@@ -114,6 +128,28 @@ def frontend_tests(browser,base):
     assert state['tickets'][-1]['assignees']==[]
     assert len(push_events)==2
     page.locator('#myAccountDetails > summary').click()
+    expect(page.locator('#pushUrgencies')).to_be_enabled()
+    for urgency in ['laag','normaal']:expect(page.locator(f'[data-push-urgency="{urgency}"]')).not_to_be_checked()
+    for urgency in ['hoog','spoed']:expect(page.locator(f'[data-push-urgency="{urgency}"]')).to_be_checked()
+    for urgency in ['laag','normaal']:page.locator(f'[data-push-urgency="{urgency}"]').check()
+    for urgency in ['hoog','spoed']:page.locator(f'[data-push-urgency="{urgency}"]').uncheck()
+    page.locator('#savePushUrgencies').click()
+    expect(page.locator('#pushUrgencyStatus')).to_contain_text('opgeslagen')
+    assert preferences==dict(laag=True,normaal=True,hoog=False,spoed=False)
+    assert not registrations
+    # De keuze blijft na herladen bestaan en verandert de lokale badgekeuze niet.
+    page.reload();page.locator('#navDashboard').click()
+    if not page.locator('#myAccountDetails').evaluate('(el)=>el.open'):page.locator('#myAccountDetails > summary').click()
+    expect(page.locator('#pushUrgencies')).to_be_enabled()
+    expect(page.locator('[data-push-urgency="laag"]')).to_be_checked()
+    expect(page.locator('[data-push-urgency="spoed"]')).not_to_be_checked()
+    expect(page.locator('[data-notify-urgency="spoed"]')).to_be_checked()
+    preference_failure=True
+    page.locator('[data-push-urgency="spoed"]').check();page.locator('#savePushUrgencies').click()
+    expect(page.locator('#pushUrgencyStatus')).to_contain_text('Opslaan mislukt')
+    assert preferences['spoed'] is False
+    preference_failure=False
+    page.locator('[data-push-urgency="spoed"]').uncheck()
     page.locator('#enableWebPush').click()
     expect(page.locator('#webPushStatus')).to_contain_text('ingeschakeld')
     assert page.evaluate('fixture.permissionRequests')==1
@@ -122,6 +158,7 @@ def frontend_tests(browser,base):
     expect(page.locator('#enableWebPush')).to_be_enabled()
     assert page.evaluate('fixture.subscriptions')==1
     assert len(registrations)==1
+    assert preferences==dict(laag=True,normaal=True,hoog=False,spoed=False)
     page.locator('#testWebPush').click()
     expect(page.locator('#webPushStatus')).to_contain_text('Testmelding verstuurd')
     assert len(test_events)==1
@@ -153,14 +190,33 @@ def frontend_tests(browser,base):
     guest.close()
     # Met een oudere backend geen knop aanbieden die de server nog weigert.
     unassigned_supported=False
+    urgency_supported=False
     legacy=browser.new_context(service_workers='block')
     legacy.add_init_script(PUSH_STUB+"localStorage.setItem('dalton_meldpunt_v5_token','fixture-token');")
     legacy.route('**/*',route)
     page=legacy.new_page();page.goto(base);page.locator('#navDashboard').click()
     expect(page.locator('#generalTickets [data-on-way-ticket="2"]')).to_have_count(0)
     expect(page.locator('#myAssignedTickets [data-on-way-ticket="1"]')).to_be_visible()
+    expect(page.locator('#pushUrgencies')).to_have_count(0)
     legacy.close()
-    print('Browser: onderweg zonder toewijzing, behoud toewijzing/status, herladen, intrekken, oude backend, collega-sync, pushinstellingen en ticketlinks OK')
+    # Een ander apparaat leest dezelfde accountkeuze; bij laadfout niets overschrijven.
+    urgency_supported=True
+    second=browser.new_context(service_workers='block')
+    second.add_init_script(PUSH_STUB+"localStorage.setItem('dalton_meldpunt_v5_token','fixture-token');")
+    second.route('**/*',route)
+    page=second.new_page();page.goto(base);page.locator('#navDashboard').click()
+    page.locator('#myAccountDetails > summary').click()
+    expect(page.locator('#pushUrgencies')).to_be_enabled()
+    expect(page.locator('[data-push-urgency="laag"]')).to_be_checked()
+    expect(page.locator('[data-push-urgency="spoed"]')).not_to_be_checked()
+    preference_read_failure=True
+    page.reload();page.locator('#navDashboard').click()
+    expect(page.locator('#pushUrgencyStatus')).to_contain_text('konden niet worden geladen')
+    expect(page.locator('#savePushUrgencies')).to_be_disabled()
+    for urgency in ['laag','normaal','hoog','spoed']:expect(page.locator(f'[data-push-urgency="{urgency}"]')).to_be_disabled()
+    assert preferences==dict(laag=True,normaal=True,hoog=False,spoed=False)
+    second.close()
+    print('Browser: persoonlijke pushurgenties, bewaren/herladen/tweede apparaat, fouten zonder overschrijven, lokale badges apart, onderweg, oude backend en ticketlinks OK')
 
 def worker_tests(browser,base):
     context=browser.new_context(service_workers='allow')

@@ -58,6 +58,8 @@ select pg_temp.check_true(not exists(select 1 from dm_ticket_on_way where ticket
 select pg_temp.check_true((select count(*)=0 from dm_claim_push_deliveries('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001')),'ingetrokken gebeurtenis wordt niet meer verzonden');
 
 -- Toewijzing blijft irrelevant; ingetrokken rechten en verborgen namen worden opnieuw gecontroleerd.
+-- Ook een reeds wachtende v5.9.2-payload zonder het nieuwe urgentieveld werkt nog.
+update dm_push_deliveries set payload=payload-'urgency' where event_id='20000000-0000-4000-8000-000000000004';
 delete from dm_ticket_assignments where ticket_id=2 and account_id='00000000-0000-4000-8000-000000000007';
 update dm_accounts set active=false where username_key='fixture5';
 update dm_settings set value='{"facility":{"viewAssignment":false,"editAssignment":false},"concierge":{"notifications":true,"viewAssignment":false,"editAssignment":false}}' where key='rolePermissions';
@@ -96,7 +98,8 @@ insert into dm_tickets(id,ticket_no,reporter,location,category,urgency,title,des
 values(11,'TEST-11','Fixture','Testlocatie','ICT','spoed','Direct spoed','Fixture'),
  (12,'TEST-12','Fixture','Testlocatie','ICT','normaal','Normaal','Fixture'),
  (13,'TEST-13','Fixture','Testlocatie','ICT','laag','Laag','Fixture');
-select pg_temp.check_true((select count(*)=1 from dm_push_events where ticket_id in (11,12,13)),'nieuwe spoed wel; nieuw normaal/laag geen push');
+select pg_temp.check_true((select count(*)=3 from dm_push_events where ticket_id in (11,12,13)),'alle urgenties hebben een gebeurtenis');
+select pg_temp.check_true(not exists(select 1 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id in (12,13)),'Laag/Normaal zonder persoonlijke opt-in blijven stil');
 update dm_tickets set urgency='spoed' where id=12;
 update dm_tickets set urgency='hoog' where id=13;
 select pg_temp.check_true((select count(*)=2 from dm_push_events where ticket_id in (12,13) and kind='urgency_raised'),'normaal naar spoed en laag naar hoog versturen push');
@@ -105,7 +108,7 @@ update dm_settings set value='{"facility":{"notifications":false},"concierge":{"
 select pg_temp.check_true((select count(*)=2 from dm_claim_push_deliveries((select id from dm_push_events where ticket_id=11),null)),'ticketpush hercontroleert verlopen apparaten en notificatierechten: alleen conciërge en admin');
 select pg_temp.check_true((select count(*)=0 from dm_claim_push_deliveries((select id from dm_push_events where ticket_id=11),null)),'ticketpush niet dubbel verzonden');
 update dm_settings set value='{"facility":{"viewAllTickets":false},"concierge":{"notifications":true}}' where key='rolePermissions';
-select pg_temp.check_true((select count(*)=2 from dm_claim_push_deliveries((select id from dm_push_events where ticket_id=12),null)),'geen push zonder ticketzicht, ook als notificaties aan staan');
+select pg_temp.check_true((select count(*)=2 from dm_claim_push_deliveries((select id from dm_push_events where ticket_id=12 and kind='urgency_raised'),null)),'geen push zonder ticketzicht, ook als notificaties aan staan');
 update dm_settings set value='{}' where key='rolePermissions';
 select pg_temp.check_true(not has_function_privilege('anon','dm_pending_ticket_push(bigint)','EXECUTE'),'geen publieke toegang tot ticketpushqueue');
 select pg_temp.check_true(not has_function_privilege('authenticated','dm_claim_push_deliveries(uuid,uuid)','EXECUTE'),'browser kan systeemgebeurtenissen niet claimen');
@@ -130,6 +133,46 @@ select dm_set_on_way('00000000-0000-4000-8000-000000000005',14,true,'50000000-00
 select pg_temp.check_true(exists(select 1 from dm_ticket_on_way where ticket_id=14 and account_id='00000000-0000-4000-8000-000000000005' and active),'ook bij volledig niet-toegewezen normale melding onderweg');
 select pg_temp.check_true(not exists(select 1 from dm_push_deliveries where event_id='50000000-0000-4000-8000-000000000004'),'normale melding blijft zonder push');
 select pg_temp.check_true(not exists(select 1 from dm_ticket_assignments where ticket_id=14) and (select assignee is null and status='open' from dm_tickets where id=14),'onverdeeld ticket en ticketstatus behouden');
+
+-- Accountkeuze geldt voor alle apparaten en kan ook Hoog/Spoed uitschakelen.
+insert into dm_push_preferences(account_id,laag,normaal,hoog,spoed) values
+ ('00000000-0000-4000-8000-000000000002',true,true,false,false),
+ ('00000000-0000-4000-8000-000000000005',true,true,true,true),
+ ('00000000-0000-4000-8000-000000000008',false,false,false,false);
+select pg_temp.check_true(dm_push_wants('00000000-0000-4000-8000-000000000001','spoed') and not dm_push_wants('00000000-0000-4000-8000-000000000001','normaal'),'bestaande standaard behouden');
+select pg_temp.check_true(not dm_push_wants('00000000-0000-4000-8000-000000000002','hoog') and not dm_push_wants('00000000-0000-4000-8000-000000000002','spoed'),'ook Hoog en Spoed uit te zetten');
+select pg_temp.check_true(not dm_push_wants('00000000-0000-4000-8000-000000000002','onbekend') and not dm_push_wants('00000000-0000-4000-8000-000000000002',null),'onbekende urgentie nooit toegestaan');
+insert into dm_tickets(id,ticket_no,reporter,location,category,urgency,title,description)
+select n,'PREF-'||n,'Fixture','Testruimte','ICT',case n when 20 then 'laag' when 21 then 'normaal' when 22 then 'hoog' else 'spoed' end,'Persoonlijke keuze','Fixture'
+from generate_series(20,23) n;
+select pg_temp.check_true((select count(*)=3 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id=20),'Laag alleen naar opt-in: twee apparaten account 2 en één account 5');
+select pg_temp.check_true((select count(*)=3 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id=21),'Normaal alleen naar opt-in op alle apparaten');
+select pg_temp.check_true(not exists(select 1 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id join dm_push_subscriptions s on s.id=d.subscription_id where e.ticket_id in (22,23) and s.account_id in ('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000008')),'Hoog/Spoed-opt-out geldt ook voor beheerder en alle apparaten');
+select pg_temp.check_true((select count(*)=3 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id=22) and (select count(*)=3 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id=23),'overige accounts met Hoog/Spoed aan blijven ontvangen');
+-- Een nog wachtend bericht wordt na een gewijzigde voorkeur niet alsnog verzonden.
+update dm_push_preferences set laag=false where account_id='00000000-0000-4000-8000-000000000002';
+select pg_temp.check_true((select count(*)=1 from dm_claim_push_deliveries((select id from dm_push_events where ticket_id=20),null)),'opt-out vlak voor verzending geldt voor beide apparaten');
+select dm_set_on_way('00000000-0000-4000-8000-000000000001',21,true,'60000000-0000-4000-8000-000000000001');
+select pg_temp.check_true((select count(*)=3 from dm_push_deliveries where event_id='60000000-0000-4000-8000-000000000001'),'onderweg bij Normaal volgt persoonlijke opt-in');
+select dm_set_on_way('00000000-0000-4000-8000-000000000001',20,true,'60000000-0000-4000-8000-000000000002');
+select pg_temp.check_true((select count(*)=1 from dm_push_deliveries where event_id='60000000-0000-4000-8000-000000000002'),'onderweg bij Laag volgt actuele persoonlijke keuze');
+update dm_push_preferences set normaal=false where account_id in ('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000005');
+select pg_temp.check_true((select count(*)=0 from dm_claim_push_deliveries('60000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001')),'onderwegpush hercontroleert laatste voorkeur');
+update dm_tickets set urgency='hoog' where id=20;
+select pg_temp.check_true(exists(select 1 from dm_push_events where ticket_id=20 and kind='urgency_raised'),'Laag naar Hoog blijft pushgebeurtenis');
+select pg_temp.check_true(not exists(select 1 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id join dm_push_subscriptions s on s.id=d.subscription_id where e.ticket_id=20 and e.kind='urgency_raised' and s.account_id='00000000-0000-4000-8000-000000000002'),'urgentie verhogen volgt keuze van nieuwe urgentie');
+select pg_temp.check_true((select count(*)=0 from dm_claim_push_deliveries('60000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001')),'gewijzigde urgentie onderdrukt achterhaald onderwegbericht');
+select dm_test_push('00000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000008','60000000-0000-4000-8000-000000000003');
+select pg_temp.check_true((select count(*)=1 from dm_claim_push_deliveries('60000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000008')),'eigen test werkt ook met alle urgenties uit');
+select dm_register_push('00000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000022','hash-22','https://fcm.googleapis.com/fixture/22','fixture-key','fixture-auth',null);
+select pg_temp.check_true(not dm_push_wants('00000000-0000-4000-8000-000000000002','spoed'),'opnieuw aanmelden overschrijft persoonlijke keuze niet');
+select pg_temp.check_true(not has_table_privilege('anon','dm_push_preferences','SELECT') and not has_table_privilege('authenticated','dm_push_preferences','UPDATE'),'voorkeuren niet publiek leesbaar of schrijfbaar');
+select pg_temp.check_true(not has_function_privilege('anon','dm_push_wants(uuid,text)','EXECUTE'),'persoonlijke keuze uitsluitend backend');
+update dm_push_preferences set normaal=true where account_id='00000000-0000-4000-8000-000000000002';
+insert into dm_tickets(id,ticket_no,reporter,location,category,urgency,title,description)
+values(24,'PREF-24','Fixture','Testruimte','ICT','laag','Verhogen naar normaal','Fixture');
+update dm_tickets set urgency='normaal' where id=24;
+select pg_temp.check_true((select count(*)=2 from dm_push_deliveries d join dm_push_events e on e.id=d.event_id where e.ticket_id=24 and e.kind='urgency_raised'),'Laag naar Normaal geeft push op beide opt-in apparaten');
 
 do $$ begin
   begin perform dm_set_on_way('00000000-0000-4000-8000-000000000004',1,true,gen_random_uuid());raise exception 'TEST FAILED: inactief toegelaten';

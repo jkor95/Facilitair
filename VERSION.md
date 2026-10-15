@@ -1,15 +1,15 @@
-# Meldpunt VWO v5.9.2
+# Meldpunt VWO v5.9.3
 
 ## Wijzigingen
-- Bevoegde Beheerders, Facilitair en Conciërges kunnen bij iedere zichtbare open melding aangeven dat zij onderweg zijn, ook zonder toewijzing.
-- Onderweg wijzigt geen toewijzing of ticketstatus. Iedere medewerker kan uitsluitend de eigen onderweg-status intrekken.
-- Onderweg-statussen zonder toewijzing blijven zichtbaar na opslaan, verversen en herladen; bestaande privacyrechten voor colleganamen blijven gelden.
-- Hoog/Spoed-push blijft naar alle actieve bevoegde collega's met aangemelde pushapparaten gaan, ook als de onderweg-actor niet toegewezen is. Geen zelfmelding; Laag/Normaal blijft zonder onderweg-push.
-- Bestaande aanmaak-/urgentiepush, filters, badges, ticketgegevens, rollen en LCP blijven behouden.
-- Bij een oudere backend blijven de bestaande toegewezen onderwegknoppen werken; nieuwe knoppen verschijnen zodra de backend ondersteuning bevestigt.
+- Persoonlijke pushkeuze per urgentie: Laag, Normaal, Hoog en Spoed afzonderlijk aan/uit.
+- Keuze onder Mijn account (Hoofdbeheer: Algemene instellingen), opgeslagen bij het eigen account en geldig op alle aangemelde apparaten.
+- Standaard blijven Hoog/Spoed aan en Laag/Normaal uit. Ook Hoog/Spoed zijn nu persoonlijk uit te zetten.
+- Nieuwe meldingen, echte urgentieverhogingen en onderweg-acties volgen de gekozen urgenties. Geen zelfmelding voor onderweg; de eigen apparaattest blijft onafhankelijk van de keuze werken.
+- Servercontrole bij aanmaken én vlak voor verzenden. Afgeronde tickets en achterhaalde urgentie worden tegengehouden; geen herverzending van oude meldingen na aanzetten.
+- Bestaande toegangsrechten, toewijzingen, ticketgegevens, onderweg zonder toewijzing, deduplicatie, lokale meldingen/badges en LCP blijven behouden.
+- De nieuwe keuzevelden verschijnen alleen als de backend ondersteuning bevestigt.
 
 ## Installatie en publicatie
-Zie SUPABASE-HANDLEIDING.txt. Vanaf de reeds geïnstalleerde v5.9.1 uitsluitend de nieuwe v5.9.2-SQL-upgrade en volledige smart-function handmatig installeren in Dalton meldpunt. Geen nieuwe secrets of apparaatregistratie nodig. Daarna pas deze frontend via GitHub Pages publiceren.
-Geen automatische Supabase-deployment vanuit deze repository. Niet in een ander project toepassen.
+Vanaf de werkende v5.9.2 uitsluitend de nieuwe SQL-upgrade en volledige smart-function handmatig installeren in Dalton meldpunt. Zie SUPABASE-HANDLEIDING.txt. Geen nieuwe secrets, VAPID-sleutels of apparaatregistratie nodig. Eerst installatie bevestigen, daarna frontend publiceren.
 
-Frontend/PWA-cache: 5.9.2.
+Frontend/PWA-cache: 5.9.3.
