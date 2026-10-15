@@ -1,15 +1,13 @@
-# Meldpunt VWO v5.9.3
+# Meldpunt VWO v5.9.4
 
 ## Wijzigingen
-- Persoonlijke pushkeuze per urgentie: Laag, Normaal, Hoog en Spoed afzonderlijk aan/uit.
-- Keuze onder Mijn account (Hoofdbeheer: Algemene instellingen), opgeslagen bij het eigen account en geldig op alle aangemelde apparaten.
-- Standaard blijven Hoog/Spoed aan en Laag/Normaal uit. Ook Hoog/Spoed zijn nu persoonlijk uit te zetten.
-- Nieuwe meldingen, echte urgentieverhogingen en onderweg-acties volgen de gekozen urgenties. Geen zelfmelding voor onderweg; de eigen apparaattest blijft onafhankelijk van de keuze werken.
-- Servercontrole bij aanmaken én vlak voor verzenden. Afgeronde tickets en achterhaalde urgentie worden tegengehouden; geen herverzending van oude meldingen na aanzetten.
-- Bestaande toegangsrechten, toewijzingen, ticketgegevens, onderweg zonder toewijzing, deduplicatie, lokale meldingen/badges en LCP blijven behouden.
-- De nieuwe keuzevelden verschijnen alleen als de backend ondersteuning bevestigt.
+- Een neutraal startscherm met logo en laadmelding staat direct in de HTML; geen lege app tijdens het laden van JavaScript of servergegevens.
+- De servercontrole en publieke instellingen laden gelijktijdig. Scripts worden zonder parserblokkade in de bestaande volgorde geladen.
+- Na de bestaande toegangscontrole verschijnt de pagina zonder op Actuele meldingen te wachten. Dat overzicht laadt op de achtergrond en toont een eigen laad-/foutmelding.
+- Alleen het meldingenoverzicht wordt daarna bijgewerkt. Formulierinvoer, invoerfocus en de open/dicht-stand blijven behouden; een ouder antwoord overschrijft geen nieuwere gegevens.
+- Bestaande toegangscontrole, login, pushinstellingen, onderweg-acties, ticketgegevens, rollen en Supabase blijven ongewijzigd.
 
-## Installatie en publicatie
-Vanaf de werkende v5.9.2 uitsluitend de nieuwe SQL-upgrade en volledige smart-function handmatig installeren in Dalton meldpunt. Zie SUPABASE-HANDLEIDING.txt. Geen nieuwe secrets, VAPID-sleutels of apparaatregistratie nodig. Eerst installatie bevestigen, daarna frontend publiceren.
+## Publicatie
+Uitsluitend frontend. Geen nieuwe Supabase-installatie of handmatige SQL-stap nodig; de bestaande v5.9.3-backend blijft bruikbaar. Herstel zo nodig via een nieuwe branch/PR naar tag v5.9.3.
 
-Frontend/PWA-cache: 5.9.3.
+Frontend/PWA-cache: 5.9.4.

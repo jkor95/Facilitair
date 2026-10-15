@@ -218,6 +218,98 @@ def frontend_tests(browser,base):
     second.close()
     print('Browser: persoonlijke pushurgenties, bewaren/herladen/tweede apparaat, fouten zonder overschrijven, lokale badges apart, onderweg, oude backend en ticketlinks OK')
 
+def startup_tests(browser,base):
+    # Houd requests vast: de pagina moet zichtbaar/bruikbaar zijn vóór hun antwoord.
+    for mode in ['public','outage_error','invalid_access','valid_access','health_error','overlap']:
+        pending={};errors=[]
+        context=browser.new_context(service_workers='block')
+        if mode in ['invalid_access','valid_access']:
+            context.add_init_script("localStorage.setItem('dm_public_access_token','fixture-access');")
+        def route(route):
+            req=route.request
+            if '/assets/app.js?' in req.url:pending['script']=route;return
+            if req.url.startswith(base):route.continue_();return
+            if req.url!='https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function':raise AssertionError(req.url)
+            action=req.post_data_json['action']
+            if action=='public_duplicate_check':route.fulfill(content_type='application/json',body=json.dumps(dict(items=[])));return
+            if mode=='overlap' and action=='public_create_ticket':route.fulfill(content_type='application/json',body=json.dumps(dict(ok=True,ticket=dict(id='START-2',dbId=2))));return
+            assert action in ['health','public_config','public_outages','validate_public_access_token'],action
+            if action=='public_outages' and action in pending:pending['old_outages']=pending.pop(action)
+            pending[action]=route
+        context.route('**/*',route)
+        page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
+        page.goto(base,wait_until='commit')
+        expect(page.locator('#startupStatus')).to_be_visible()
+        expect(page.locator('#reportForm')).to_have_count(0)
+        expect(page.locator('#app')).to_have_attribute('aria-busy','true')
+        # De neutrale startinhoud werkt zelfs zolang JavaScript nog niet geladen is.
+        with page.expect_request(lambda req:req.method=='POST' and req.post_data_json.get('action')=='public_config',timeout=3000):
+            pending.pop('script').fulfill(content_type='application/javascript',body=(ROOT/'assets/app.js').read_text())
+        expect(page.locator('#startupStatus')).to_be_visible()
+        assert 'health' in pending and 'public_config' in pending,'health en instellingen moeten gelijktijdig starten'
+        def reply(action,body,status=200):
+            pending.pop(action).fulfill(status=status,content_type='application/json',body=json.dumps(body))
+        reply('public_config',dict(settings=dict(publicAccessGateEnabled=mode in ['invalid_access','valid_access'])))
+        expect(page.locator('#reportForm')).to_have_count(0)
+        if mode=='health_error':
+            reply('health',dict(error='Fixture niet bereikbaar'),503)
+            expect(page.get_by_role('heading',name='Centrale service niet bereikbaar')).to_be_visible()
+            expect(page.locator('#startupStatus')).to_have_count(0)
+            assert not errors,errors
+            context.close();continue
+        if mode in ['invalid_access','valid_access']:
+            with page.expect_request(lambda req:req.method=='POST' and req.post_data_json.get('action')=='validate_public_access_token'):
+                reply('health',dict(features={}))
+            expect(page.locator('#reportForm')).to_have_count(0)
+            expect(page.locator('#startupStatus')).to_be_visible()
+            reply('validate_public_access_token',dict(ok=True) if mode=='valid_access' else dict(error='Ongeldige toegang'),200 if mode=='valid_access' else 403)
+        else:reply('health',dict(features={}))
+        if mode=='invalid_access':
+            expect(page.locator('#publicAccessForm')).to_be_visible()
+            expect(page.locator('#reportForm')).to_have_count(0)
+            assert page.evaluate("localStorage.getItem('dm_public_access_token')")==None
+            reply('public_outages',dict(items=[dict(title='Afgeschermde fixture')]))
+            expect(page.locator('#publicAccessForm')).to_be_visible()
+            expect(page.get_by_text('Afgeschermde fixture')).to_have_count(0)
+        else:
+            expect(page.locator('#reportForm')).to_be_visible()
+            assert 'public_outages' in pending,'formulier moet vóór het meldingenantwoord werken'
+            page.locator('#publicOutagesDetails > summary').click()
+            expect(page.locator('#publicOutagesDetails')).to_contain_text('worden geladen')
+            expect(page.locator('#publicOutagesDetails')).not_to_contain_text('geen openstaande')
+            page.locator('#reportForm [name=reporter]').fill('Onopgeslagen fixture')
+            page.locator('#reportForm [name=title]').fill('Invoer behouden')
+            page.locator('#reportForm [name=title]').focus()
+            if mode=='overlap':
+                page.locator('#reportForm [name=location]').fill('Testruimte')
+                with page.expect_request(lambda req:req.method=='POST' and req.post_data_json.get('action')=='public_outages'):
+                    page.locator('#reportForm button[type=submit]').click()
+                expect(page.locator('#reportForm button[type=submit]')).to_be_disabled()
+                fresh=dict(id='START-2',title='Nieuwste fixture',location='Testruimte',category='ICT',urgency='normaal',status='open',createdAt='2026-10-15T10:00:00Z')
+                reply('public_outages',dict(items=[fresh]))
+                expect(page.locator('#publicOutagesDetails')).to_contain_text('Nieuwste fixture')
+                expect(page.locator('#formResult')).to_contain_text('centraal opgeslagen')
+                old=pending['old_outages'].request
+                with page.expect_event('requestfinished',predicate=lambda req:req==old):reply('old_outages',dict(items=[]))
+                page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                expect(page.locator('#publicOutagesDetails')).to_contain_text('Nieuwste fixture')
+                assert not errors,errors
+                context.close();continue
+            if mode=='outage_error':
+                reply('public_outages',dict(error='Fixture overzichtfout'),503)
+                expect(page.locator('#publicOutagesDetails')).to_contain_text('konden niet worden geladen')
+            else:
+                reply('public_outages',dict(items=[dict(id='START-1',title='Geladen fixture',location='Testruimte',category='ICT',urgency='normaal',status='open',createdAt='2026-10-15T10:00:00Z')]))
+                expect(page.locator('#publicOutagesDetails')).to_contain_text('Geladen fixture')
+            expect(page.locator('#reportForm [name=reporter]')).to_have_value('Onopgeslagen fixture')
+            expect(page.locator('#reportForm [name=title]')).to_have_value('Invoer behouden')
+            expect(page.locator('#reportForm [name=title]')).to_be_focused()
+            assert page.locator('#publicOutagesDetails').evaluate('(el)=>el.open')
+        expect(page.locator('#app')).not_to_have_attribute('aria-busy','true')
+        assert not errors,errors
+        context.close()
+    print('Opstarten: zichtbare HTML vóór JavaScript/API, parallelle requests, formulier vóór overzicht, behoud invoer/focus, toegangspoort en foutafhandeling OK')
+
 def worker_tests(browser,base):
     context=browser.new_context(service_workers='allow')
     context.route('**/worker-fixture',lambda route:route.fulfill(content_type='text/html',body='<html>Workerfixture</html>'))
@@ -254,7 +346,7 @@ def main():
             executable=shutil.which('chromium') or shutil.which('google-chrome')
             if not executable:raise RuntimeError('Installeer Chromium of Google Chrome voor deze browsertests')
             browser=p.chromium.launch(executable_path=executable,headless=True,args=['--no-sandbox'])
-            try:frontend_tests(browser,base);worker_tests(browser,base)
+            try:startup_tests(browser,base);frontend_tests(browser,base);worker_tests(browser,base)
             finally:browser.close()
     finally:server.shutdown();server.server_close()
 
