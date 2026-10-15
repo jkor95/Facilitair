@@ -1,15 +1,15 @@
-# Meldpunt VWO v5.9.1
+# Meldpunt VWO v5.9.2
 
 ## Wijzigingen
-- Hoog/Spoed-push naar alle actieve bevoegde medewerkers met aangemelde apparaten, onafhankelijk van toewijzing.
-- Push bij een nieuwe Hoog/Spoed-melding, bij verhogen naar Hoog/Spoed (ook Hoog naar Spoed) en bij een collega die onderweg gaat.
-- Nieuwe meldingen en urgentieverhogingen gaan ook naar de medewerker die de actie uitvoert; onderweg-acties geven geen zelfmelding.
-- Geen push bij verlagen, ongewijzigd opslaan, intrekken of Laag/Normaal; geen dubbele verzending bij gelijktijdige verzoeken.
-- Verborgen toewijzingen blijven verborgen: zo nodig een generieke onderwegtekst zonder colleganaam.
-- Bestaande ticketgegevens, rollen, lokale meldingen, badges, apparaatregistraties en LCP blijven behouden.
+- Bevoegde Beheerders, Facilitair en Conciërges kunnen bij iedere zichtbare open melding aangeven dat zij onderweg zijn, ook zonder toewijzing.
+- Onderweg wijzigt geen toewijzing of ticketstatus. Iedere medewerker kan uitsluitend de eigen onderweg-status intrekken.
+- Onderweg-statussen zonder toewijzing blijven zichtbaar na opslaan, verversen en herladen; bestaande privacyrechten voor colleganamen blijven gelden.
+- Hoog/Spoed-push blijft naar alle actieve bevoegde collega's met aangemelde pushapparaten gaan, ook als de onderweg-actor niet toegewezen is. Geen zelfmelding; Laag/Normaal blijft zonder onderweg-push.
+- Bestaande aanmaak-/urgentiepush, filters, badges, ticketgegevens, rollen en LCP blijven behouden.
+- Bij een oudere backend blijven de bestaande toegewezen onderwegknoppen werken; nieuwe knoppen verschijnen zodra de backend ondersteuning bevestigt.
 
 ## Installatie en publicatie
-Zie SUPABASE-HANDLEIDING.txt. Vanaf de reeds geïnstalleerde v5.9.0 eerst uitsluitend de nieuwe v5.9.1-migratie en volledige smart-function in Dalton meldpunt installeren en controleren. Bestaande VAPID-secrets behouden. Daarna pas deze frontend via GitHub Pages publiceren.
+Zie SUPABASE-HANDLEIDING.txt. Vanaf de reeds geïnstalleerde v5.9.1 uitsluitend de nieuwe v5.9.2-SQL-upgrade en volledige smart-function handmatig installeren in Dalton meldpunt. Geen nieuwe secrets of apparaatregistratie nodig. Daarna pas deze frontend via GitHub Pages publiceren.
 Geen automatische Supabase-deployment vanuit deze repository. Niet in een ander project toepassen.
 
-Frontend/PWA-cache: 5.9.1.
+Frontend/PWA-cache: 5.9.2.

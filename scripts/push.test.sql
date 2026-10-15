@@ -110,9 +110,28 @@ update dm_settings set value='{}' where key='rolePermissions';
 select pg_temp.check_true(not has_function_privilege('anon','dm_pending_ticket_push(bigint)','EXECUTE'),'geen publieke toegang tot ticketpushqueue');
 select pg_temp.check_true(not has_function_privilege('authenticated','dm_claim_push_deliveries(uuid,uuid)','EXECUTE'),'browser kan systeemgebeurtenissen niet claimen');
 
+-- Niet-toegewezen medewerker mag zelf onderweg gaan, zonder overname/toewijzing.
+create temporary table assignments_before as select * from dm_ticket_assignments;
+select dm_set_on_way('00000000-0000-4000-8000-000000000005',1,true,'50000000-0000-4000-8000-000000000001');
+select pg_temp.check_true(exists(select 1 from dm_ticket_on_way where ticket_id=1 and account_id='00000000-0000-4000-8000-000000000005' and active),'niet-toegewezen actor opgeslagen');
+select pg_temp.check_true(not dm_push_assigned(1,'00000000-0000-4000-8000-000000000005'),'onderweg wordt geen automatische toewijzing');
+select pg_temp.check_true((select count(*)=5 from dm_claim_push_deliveries('50000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000005')),'Hoog/Spoed-push wordt ook voor niet-toegewezen actor daadwerkelijk geclaimd');
+select dm_set_on_way('00000000-0000-4000-8000-000000000005',1,true,'50000000-0000-4000-8000-000000000001');
+select dm_set_on_way('00000000-0000-4000-8000-000000000005',1,true,'50000000-0000-4000-8000-000000000002');
+select pg_temp.check_true((select count(*)=1 from dm_ticket_history where ticket_id=1 and actor_id='00000000-0000-4000-8000-000000000005'),'ook zonder toewijzing geen dubbele historie');
+select pg_temp.check_true((select count(*)=0 from dm_claim_push_deliveries('50000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000005')),'ook zonder toewijzing geen dubbele verzending');
+select dm_set_on_way('00000000-0000-4000-8000-000000000005',1,false,'50000000-0000-4000-8000-000000000003');
+select pg_temp.check_true(not exists(select 1 from dm_ticket_on_way where ticket_id=1 and account_id='00000000-0000-4000-8000-000000000005' and active),'eigen status zonder toewijzing intrekken');
+select pg_temp.check_true(exists(select 1 from dm_ticket_on_way where ticket_id=1 and account_id='00000000-0000-4000-8000-000000000002' and active),'status van andere medewerker blijft staan');
+select pg_temp.check_true(not exists((select * from dm_ticket_assignments except select * from assignments_before) union all (select * from assignments_before except select * from dm_ticket_assignments)),'alle toewijzingen exact behouden');
+insert into dm_tickets(id,ticket_no,reporter,location,category,urgency,title,description)
+values(14,'TEST-14','Fixture','Testlocatie','ICT','normaal','Zonder toewijzingen','Fixture');
+select dm_set_on_way('00000000-0000-4000-8000-000000000005',14,true,'50000000-0000-4000-8000-000000000004');
+select pg_temp.check_true(exists(select 1 from dm_ticket_on_way where ticket_id=14 and account_id='00000000-0000-4000-8000-000000000005' and active),'ook bij volledig niet-toegewezen normale melding onderweg');
+select pg_temp.check_true(not exists(select 1 from dm_push_deliveries where event_id='50000000-0000-4000-8000-000000000004'),'normale melding blijft zonder push');
+select pg_temp.check_true(not exists(select 1 from dm_ticket_assignments where ticket_id=14) and (select assignee is null and status='open' from dm_tickets where id=14),'onverdeeld ticket en ticketstatus behouden');
+
 do $$ begin
-  begin perform dm_set_on_way('00000000-0000-4000-8000-000000000005',1,true,gen_random_uuid());raise exception 'TEST FAILED: niet toegewezen actor toegelaten';
-  exception when others then if sqlerrm like 'TEST FAILED%' then raise; end if; end;
   begin perform dm_set_on_way('00000000-0000-4000-8000-000000000004',1,true,gen_random_uuid());raise exception 'TEST FAILED: inactief toegelaten';
   exception when others then if sqlerrm like 'TEST FAILED%' then raise; end if; end;
   begin perform dm_set_on_way('00000000-0000-4000-8000-000000000006',1,true,gen_random_uuid());raise exception 'TEST FAILED: staff toegelaten';
@@ -136,6 +155,8 @@ select pg_temp.check_true(has_function_privilege('service_role','dm_set_on_way(u
 update dm_settings set value='{"facility":{"editStatus":false}}' where key='rolePermissions';
 do $$ begin
   begin perform dm_set_on_way('00000000-0000-4000-8000-000000000001',1,true,gen_random_uuid());raise exception 'TEST FAILED: afhandelrecht ontbreekt';
+  exception when others then if sqlerrm like 'TEST FAILED%' then raise; end if; end;
+  begin perform dm_set_on_way('00000000-0000-4000-8000-000000000005',1,true,gen_random_uuid());raise exception 'TEST FAILED: niet-toegewezen actor zonder afhandelrecht';
   exception when others then if sqlerrm like 'TEST FAILED%' then raise; end if; end;
 end $$;
 rollback;

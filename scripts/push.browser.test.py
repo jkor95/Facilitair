@@ -23,8 +23,9 @@ def state_fixture():
             assignees=['me','other'] if assigned else ['other'],assignedToMe=assigned,onWay=[],
             category='ICT / apparatuur',location='TEST-ruimte',description='Fixtureomschrijving',
             createdAt='2026-10-15T10:00:00Z',updatedAt='2026-10-15T10:00:00Z',history=[],internalNote='Fixturenotitie')
+    unassigned=ticket(6,'normaal',False);unassigned['assignees']=[]
     return dict(currentAccount=actor,accounts=[actor,other],routing={},auditLog=[],settings={},
-        tickets=[ticket(1,'spoed'),ticket(2,'hoog',False),ticket(3,'normaal'),ticket(4,'laag'),ticket(5,'hoog',True,'done')])
+        tickets=[ticket(1,'spoed'),ticket(2,'hoog',False),ticket(3,'normaal'),ticket(4,'laag'),ticket(5,'hoog',True,'done'),unassigned])
 
 PUSH_STUB="""
 window.fixture={permission:'default',permissionRequests:0,subscriptions:0,unsubscribes:0,sub:null};
@@ -39,6 +40,7 @@ Object.defineProperty(navigator,'serviceWorker',{value:{register:async()=>regist
 
 def frontend_tests(browser,base):
     state=state_fixture();calls=[];errors=[];external=[];push_events=set();registrations={};test_events=set();dialogs=[]
+    unassigned_supported=True
     context=browser.new_context(service_workers='block')
     context.add_init_script(PUSH_STUB+"localStorage.setItem('dalton_meldpunt_v5_token','fixture-token');")
     def route(route):
@@ -46,7 +48,7 @@ def frontend_tests(browser,base):
         if req.url.startswith(base):route.continue_();return
         if req.url!='https://xmmrplvhkfvyfqwjrugl.supabase.co/functions/v1/smart-function':external.append(req.url);route.abort();return
         body=req.post_data_json;calls.append(body);action=body['action'];payload=body.get('payload',{})
-        if action=='health':out=dict(ok=True,features=dict(onWay=1,webPush=1))
+        if action=='health':out=dict(ok=True,features=dict(onWay=1,webPush=1,onWayUnassigned=1 if unassigned_supported else 0))
         elif action=='state':out=dict(state=state)
         elif action=='login':out=dict(token='fixture-token')
         elif action=='public_config':out=dict(settings=dict(publicAccessGateEnabled=False))
@@ -71,7 +73,8 @@ def frontend_tests(browser,base):
     page=context.new_page();page.set_default_timeout(10000);page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:(dialogs.append(d.message),d.accept()))
     page.goto(base);page.locator('#navDashboard').click()
     expect(page.locator('#myAssignedTickets [data-on-way-ticket="1"]')).to_be_visible()
-    expect(page.locator('#generalTickets [data-on-way-ticket="2"]')).to_have_count(0)
+    expect(page.locator('#generalTickets [data-on-way-ticket="2"]')).to_be_visible()
+    expect(page.locator('#generalTickets [data-on-way-ticket="6"]')).to_be_visible()
     expect(page.locator('#completedTickets [data-on-way-ticket="5"]')).to_have_count(0)
     assert page.evaluate('fixture.permissionRequests')==0
     page.locator('#myAssignedTickets [data-on-way-ticket="1"]').click()
@@ -93,6 +96,23 @@ def frontend_tests(browser,base):
         page.locator(f'#myAssignedTickets [data-on-way-ticket="{ticket_id}"]').click()
         expect(page.locator(f'#myAssignedTickets [data-on-way-status="{ticket_id}"]')).to_contain_text('Fixturemedewerker')
     assert len(push_events)==1
+    # Zonder toewijzing onderweg, direct zichtbaar en na herladen behouden.
+    page.locator('#generalTickets [data-on-way-ticket="2"]').click()
+    expect(page.locator('#generalTickets [data-on-way-status="2"]')).to_contain_text('Fixturemedewerker')
+    assert state['tickets'][1]['assignees']==['other']
+    assert state['tickets'][1]['status']=='open'
+    assert len(push_events)==2
+    page.reload();page.locator('#navDashboard').click()
+    expect(page.locator('#generalTickets [data-on-way-status="2"]')).to_contain_text('Fixturemedewerker')
+    page.locator('#generalTickets [data-ticket="2"]').click()
+    expect(page.locator('.modal [data-on-way-ticket="2"]')).to_have_text('Onderweg intrekken')
+    page.locator('.modal [data-on-way-ticket="2"]').click()
+    expect(page.locator('.modal [data-on-way-status="2"]')).not_to_contain_text('Fixturemedewerker')
+    page.locator('.modal .close').click()
+    page.locator('#generalTickets [data-on-way-ticket="6"]').click()
+    expect(page.locator('#generalTickets [data-on-way-status="6"]')).to_contain_text('Fixturemedewerker')
+    assert state['tickets'][-1]['assignees']==[]
+    assert len(push_events)==2
     page.locator('#myAccountDetails > summary').click()
     page.locator('#enableWebPush').click()
     expect(page.locator('#webPushStatus')).to_contain_text('ingeschakeld')
@@ -131,7 +151,16 @@ def frontend_tests(browser,base):
     page.locator('#loginForm button[type=submit]').click()
     expect(page.locator('.modal')).to_contain_text('TEST-1')
     guest.close()
-    print('Browser: onderweg/intrekken, collega-sync zonder verlies van invoer, Laag/Normaal, pushinstellingen, herregistratie en ticketlinks OK')
+    # Met een oudere backend geen knop aanbieden die de server nog weigert.
+    unassigned_supported=False
+    legacy=browser.new_context(service_workers='block')
+    legacy.add_init_script(PUSH_STUB+"localStorage.setItem('dalton_meldpunt_v5_token','fixture-token');")
+    legacy.route('**/*',route)
+    page=legacy.new_page();page.goto(base);page.locator('#navDashboard').click()
+    expect(page.locator('#generalTickets [data-on-way-ticket="2"]')).to_have_count(0)
+    expect(page.locator('#myAssignedTickets [data-on-way-ticket="1"]')).to_be_visible()
+    legacy.close()
+    print('Browser: onderweg zonder toewijzing, behoud toewijzing/status, herladen, intrekken, oude backend, collega-sync, pushinstellingen en ticketlinks OK')
 
 def worker_tests(browser,base):
     context=browser.new_context(service_workers='allow')

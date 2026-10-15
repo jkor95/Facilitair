@@ -337,7 +337,7 @@ async function getState(account: any, existingSettings?: any) {
       unassigned: fullIds.length === 0,
       internalNote: role === 'admin' || perms.viewInternalNote ? t.internal_note : '',
       history: role === 'admin' || perms.viewHistory ? (histBy.get(t.id) || []) : [],
-      onWay: onWayRows.filter((r:any)=>r.ticketId===t.id && fullIds.includes(r.accountId) && (showAssignment||r.accountId===account.id)).map(({ticketId,...row}:any)=>row),
+      onWay: onWayRows.filter((r:any)=>r.ticketId===t.id && (showAssignment||r.accountId===account.id)).map(({ticketId,...row}:any)=>row),
     }
   }))
   const current = safeAccount(clientAccount, role === 'admin', role === 'admin' ? await decryptPassword(account.password_cipher, account.password_iv).catch(()=>'') : '')
@@ -650,13 +650,7 @@ async function onWayState(account:any,settings:any){
   if(account.role!=='admin'&&(!isOperationalRole(account.role)||perms.viewAllTickets===false))return []
   const rows=(await loadOnWayRows()).filter((r:any)=>account.role==='admin'||perms.viewAssignment||r.accountId===account.id)
   if(!rows.length)return []
-  const ids=[...new Set(rows.map((r:any)=>r.ticketId))]
-  const [{data:assignments,error:ae},{data:tickets,error:te}]=await Promise.all([
-    db.from('dm_ticket_assignments').select('ticket_id,account_id').in('ticket_id',ids),
-    db.from('dm_tickets').select('id,assignee').in('id',ids),
-  ])
-  if(ae||te)throw new Error('Onderwegregistratie kon niet worden geladen')
-  return rows.filter((r:any)=>{const assigned=(assignments||[]).filter((a:any)=>a.ticket_id===r.ticketId);return assigned.length?assigned.some((a:any)=>a.account_id===r.accountId):(tickets||[]).some((t:any)=>t.id===r.ticketId&&t.assignee===r.accountId)})
+  return rows
 }
 async function deliverPushEvent(eventId:string,actorId:string|null){
   const vapid=vapidConfig()
@@ -710,7 +704,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.91,features:{onWay:1,webPush:1,urgentBroadcast:1} })
+    if (action === 'health') return json({ ok:true, version:5.92,features:{onWay:1,webPush:1,urgentBroadcast:1,onWayUnassigned:1} })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])

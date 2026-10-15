@@ -39,7 +39,7 @@ function ticketTestContext(){
     location: {search: ''}, URLSearchParams, navigator: {setAppBadge: async n => badge.push(n), clearAppBadge: async () => badge.push(0)}});
   const source = fs.readFileSync(path.join(__dirname, '../assets/app.js'), 'utf8');
   assert(source.includes('\ninit();'), 'Test moet startup vervangen om netwerkverkeer te voorkomen');
-  vm.runInContext(source.replace('\ninit();', '\nglobalThis.ticketTests={facilityTicketGroups,openCountFor,updateBadge,setState:value=>db=value};'),context);
+  vm.runInContext(source.replace('\ninit();', '\nglobalThis.ticketTests={facilityTicketGroups,openCountFor,updateBadge,onWayControlHtml,setFeatures:value=>serverFeatures=value,setState:value=>db=value};'),context);
   return {...context.ticketTests, localStorage, badge};
 }
 
@@ -95,4 +95,24 @@ test('Openstaande aantallen en badge sluiten afgeronde tickets uit', async () =>
   assert.equal(api.openCountFor('me'),1);
   await api.updateBadge();
   assert.deepEqual(api.badge,[2]);
+});
+
+test('Onderwegknop voor iedere bevoegde medewerker bij open tickets, ook zonder toewijzing',()=>{
+ const api=ticketTestContext(),ticket=ticketFixture(10,'open',['other']);
+ api.setFeatures({onWay:1,onWayUnassigned:1});
+ for(const role of ['admin','facility','concierge']){
+  api.setState({currentAccount:{id:'me',role},settings:{rolePermissions:{}}});
+  assert(api.onWayControlHtml(ticket).includes('Ik ben onderweg'),role);
+  assert.equal(api.onWayControlHtml({...ticket,status:'done'}),'');
+ }
+ for(const permission of ['editStatus','viewAllTickets']){
+  api.setState({currentAccount:{id:'me',role:'facility'},settings:{rolePermissions:{facility:{[permission]:false}}}});
+  assert.equal(api.onWayControlHtml(ticket),'');
+ }
+ api.setState({currentAccount:{id:'me',role:'staff'},settings:{rolePermissions:{}}});
+ assert.equal(api.onWayControlHtml(ticket),'');
+ api.setState({currentAccount:{id:'me',role:'facility'},settings:{rolePermissions:{}}});
+ api.setFeatures({onWay:1});
+ assert.equal(api.onWayControlHtml(ticket),'');
+ assert(api.onWayControlHtml({...ticket,assignedToMe:true}).includes('Ik ben onderweg'));
 });
