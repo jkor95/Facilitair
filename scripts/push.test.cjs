@@ -8,7 +8,7 @@ const {webcrypto,createECDH,randomBytes}=require('node:crypto');
 const ACTOR='00000000-0000-4000-8000-000000000001',DEVICE='10000000-0000-4000-8000-000000000001',EVENT='20000000-0000-4000-8000-000000000001';
 function subscription(){const ecdh=createECDH('prime256v1');ecdh.generateKeys();return {endpoint:'https://fcm.googleapis.com/fixture',keys:{p256dh:ecdh.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')}}}
 function server(options={}){
- const records=[],sent=[];
+ const records=[],sent=[],logs=[];
  const actor={id:ACTOR,role:options.role||'facility',name:'Fixture',active:true};
  const sub=subscription();
  let handler,claimed=false;
@@ -29,13 +29,15 @@ function server(options={}){
    if(table==='dm_settings')data=options.settings||[];
    if(table==='dm_ticket_on_way')data=options.onWay||[];
    if(table==='dm_ticket_assignments')data=options.assignments||[];
-   if(table==='dm_tickets')data=options.tickets||[];
+   if(table==='dm_tickets')data=q.one?(options.ticket||{id:41,status:'open',urgency:'normaal',assignee:null}):(options.tickets||[]);
    return Promise.resolve({data,error:null}).then(resolve,reject);
   };
   return q;
  }
  const db={from:query,rpc:async(name,args)=>{
   records.push({rpc:name,args});
+  if(name==='dm_next_ticket_number')return {data:{ticket_date:'2026-10-15',number:1},error:null};
+  if(name==='dm_pending_ticket_push')return options.pendingError?{data:null,error:{message:'Sensitive database detail'}}:{data:options.pending||[],error:null};
   if(name==='dm_claim_push_deliveries'){if(claimed)return {data:[],error:null};claimed=true;return {data:queue,error:null}}
   return {data:{changed:true},error:null};
  }};
@@ -43,16 +45,16 @@ function server(options={}){
   ...(options.configured===false?{}:{DM_WEB_PUSH_ENABLED:'true',DM_VAPID_PUBLIC_KEY:'fixture-public',DM_VAPID_PRIVATE_KEY:'fixture-private',DM_VAPID_SUBJECT:'mailto:fixture@example.invalid'})};
  const context=vm.createContext({Deno:{env:{get:name=>env[name]},serve:value=>handler=value},
   fixtures:{createClient:()=>db,webpush:{sendNotification:async(...args)=>{sent.push(args);if(options.sendError)throw Object.assign(new Error('Provider secret body must not escape'),{statusCode:options.sendError})}}},
-  crypto:webcrypto,TextEncoder,TextDecoder,URL,Request,Response,atob,btoa,console:{error:()=>{throw new Error('Onverwacht backendlog')}},Uint8Array});
+  crypto:webcrypto,TextEncoder,TextDecoder,URL,Request,Response,atob,btoa,console:{error:(...args)=>{if(!options.allowLogs)throw new Error('Onverwacht backendlog');logs.push(args)}},Uint8Array});
  let source=fs.readFileSync(path.join(__dirname,'../supabase/functions/dalton-api/index.ts'),'utf8');
  source=source.replace(/^import .*\n/gm,'');
- source="const {createClient,webpush}=fixtures;\n"+source+'\nglobalThis.apiTests={pushSubscription,pushUuid,deliverPushEvent};';
+ source="const {createClient,webpush}=fixtures;\n"+source+'\nglobalThis.apiTests={pushSubscription,pushUuid,deliverPushEvent,deliverTicketPush,createTicket,updateTicket};';
  vm.runInContext(stripTypeScriptTypes(source),context);
  const call=async(action,payload={},authenticated=true)=>{
   const response=await handler(new Request('https://example.invalid',{method:'POST',headers:authenticated?{Authorization:'Bearer fixture-token'}:{},body:JSON.stringify({action,payload})}));
   return {status:response.status,body:await response.json()};
  };
- return {...context.apiTests,records,sent,call,sub};
+ return {...context.apiTests,records,sent,logs,call,sub,actor};
 }
 
 test('Pushsubscripties staan alleen bekende HTTPS-pushdiensten met geldige sleutels toe',()=>{
@@ -146,4 +148,42 @@ test('Alleen verlopen/404/410-registraties worden opgeruimd, geen onzekere retry
  const unconfigured=server({configured:false});
  assert.equal((await unconfigured.deliverPushEvent(EVENT,ACTOR)).configured,false);
  assert(!unconfigured.records.some(r=>r.rpc==='dm_claim_push_deliveries'));
+});
+
+test('Publieke en ingelogde aanmaak verzenden serverqueue na de definitieve ticketopslag',async()=>{
+ for(const publicReporter of [true,false]){
+  const api=server({pending:[{event_id:EVENT}]});
+  const result=await api.createTicket({reporter:'Publieke fixture',category:'ICT',urgency:'spoed',location:'Testlocatie'},publicReporter?null:api.actor);
+  assert.equal(result.dbId,41);
+  const pending=api.records.findIndex(r=>r.rpc==='dm_pending_ticket_push');
+  const numbered=api.records.findIndex(r=>r.table==='dm_tickets'&&r.kind==='update'&&r.values.ticket_no);
+  assert(pending>numbered);
+  assert.deepEqual(JSON.parse(JSON.stringify(api.records[pending].args)),{p_ticket:41});
+  assert.equal(api.records.find(r=>r.rpc==='dm_claim_push_deliveries').args.p_actor,null);
+  assert.equal(api.sent.length,1);
+  assert.equal(api.logs.length,0);
+ }
+});
+
+test('Ticketbewerking verzendt de databasegebeurtenis; de browser kiest geen broadcast',async()=>{
+ const api=server({pending:[{event_id:EVENT}]});
+ await api.updateTicket(api.actor,{dbId:41,urgency:'hoog',recipients:['onbevoegd'],eventId:'browser-event'});
+ const save=api.records.findIndex(r=>r.table==='dm_tickets'&&r.kind==='update');
+ const pending=api.records.findIndex(r=>r.rpc==='dm_pending_ticket_push');
+ assert(pending>save);
+ assert.equal(api.sent.length,1);
+ assert.equal(api.records.find(r=>r.rpc==='dm_claim_push_deliveries').args.p_event,EVENT);
+ const quiet=server();
+ await quiet.updateTicket(quiet.actor,{dbId:41,title:'Alleen titel'});
+ assert.equal(quiet.sent.length,0);
+});
+
+test('Pushfouten maken een geslaagde ticketopslag niet ongedaan en lekken geen details',async()=>{
+ const api=server({pendingError:true,allowLogs:true});
+ assert.equal((await api.updateTicket(api.actor,{dbId:41,urgency:'hoog'})).ok,true);
+ assert.equal(api.logs.length,1);
+ assert(!JSON.stringify(api.logs).includes('Sensitive'));
+ const disabled=server({configured:false});
+ await disabled.deliverTicketPush(41);
+ assert(!disabled.records.some(r=>r.rpc==='dm_pending_ticket_push'));
 });

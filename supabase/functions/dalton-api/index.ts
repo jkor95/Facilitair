@@ -443,6 +443,7 @@ async function createTicket(payload: any, actorAccount: any | null) {
     assigneeNames = routeIds.map(id=>nameMap.get(id) || 'medewerker')
     await history(inserted.id, 'Systeem', null, `Automatisch toegewezen aan ${assigneeNames.join(', ')}`)
   }
+  await deliverTicketPush(inserted.id)
   return { id: ticketNo, dbId: inserted.id, assignee: primary || '', assignees: routeIds, assigneeName: assigneeNames[0] || '', assigneeNames }
 }
 
@@ -522,6 +523,7 @@ async function updateTicket(account: any, payload: any, settingsObj?: any) {
   const { error } = await db.from('dm_tickets').update(patch).eq('id', id)
   if (error) throw error
   if (changes.length) await history(id, account.name, account.id, changes.join(' | '))
+  await deliverTicketPush(id)
   return { ok:true }
 }
 
@@ -656,7 +658,7 @@ async function onWayState(account:any,settings:any){
   if(ae||te)throw new Error('Onderwegregistratie kon niet worden geladen')
   return rows.filter((r:any)=>{const assigned=(assignments||[]).filter((a:any)=>a.ticket_id===r.ticketId);return assigned.length?assigned.some((a:any)=>a.account_id===r.accountId):(tickets||[]).some((t:any)=>t.id===r.ticketId&&t.assignee===r.accountId)})
 }
-async function deliverPushEvent(eventId:string,actorId:string){
+async function deliverPushEvent(eventId:string,actorId:string|null){
   const vapid=vapidConfig()
   if(!vapid)return {sent:0,failed:0,configured:false}
   const {error:expiryError}=await db.from('dm_push_subscriptions').delete().lt('expiration_time',new Date().toISOString())
@@ -688,6 +690,18 @@ async function deliverPushEvent(eventId:string,actorId:string){
   return {sent,failed,configured:true}
 }
 
+// Push is aanvullend: een provider-/queuefout mag een opgeslagen ticket niet laten mislukken.
+async function deliverTicketPush(ticketId:number){
+  if(!vapidConfig())return
+  try{
+    const {data,error}=await db.rpc('dm_pending_ticket_push',{p_ticket:ticketId})
+    if(error)throw new Error('Pushqueue niet beschikbaar')
+    for(const event of data||[])await deliverPushEvent(event.event_id,null)
+  }catch{
+    console.error('Ticket opgeslagen; pushverzending niet voltooid')
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error:'Alleen POST toegestaan' },405)
@@ -696,7 +710,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || '')
     const payload = body.payload || {}
 
-    if (action === 'health') return json({ ok:true, version:5.90,features:{onWay:1,webPush:1} })
+    if (action === 'health') return json({ ok:true, version:5.91,features:{onWay:1,webPush:1,urgentBroadcast:1} })
     if (action === 'public_config') {
       const defaults:any = { categories: ['Gebouw / onderhoud','Deuren / sloten / toegang','Meubilair','Schoonmaak','Voorraad / materialen','Veiligheid','ICT / apparatuur','Sanitair','Verlichting / elektra','Overig'], reportLocationExamples: ['003','105','225','Personeelswerkkamer','Mediatheek','Docentenkamer'], reportTitleExamples: ['Docking werkt niet','Lamp kapot','Stoel defect','Deurklink zit los','Stopcontact werkt niet'], reportHeroTitle: 'Facilitaire melding', reportHeroIntro: 'Iets kapot, vies, leeg of onveilig? Meld het hier snel bij facilitair.', reportHeroLocation: 'Vul de locatie zo duidelijk mogelijk in, bijvoorbeeld {locaties}.', reportHeroEmergency: 'Bij direct gevaar of spoed: volg altijd de interne noodprocedure en neem direct persoonlijk contact op.', reportHeroTitleSize: 30, reportHeroIntroSize: 14, reportHeroLocationSize: 16, reportHeroEmergencySize: 12, publicAccessGateEnabled:false, publicAccessWordSet:false, publicOutageOverview:true, publicOutageCategories:null, publicOutageStatuses:null, publicOutageSort:'category', publicOutageCategoryOrder:null, publicPageSectionOrder:['hero','outages','form'] }
       const { data: rows } = await db.from('dm_settings').select('key,value').in('key',['categories','reportLocationExamples','reportTitleExamples','reportHeroTitle','reportHeroIntro','reportHeroLocation','reportHeroEmergency','reportHeroTitleSize','reportHeroIntroSize','reportHeroLocationSize','reportHeroEmergencySize','publicAccessGateEnabled','publicOutageOverview','publicOutageCategories','publicOutageStatuses','publicOutageSort','publicOutageCategoryOrder','publicPageSectionOrder'])
