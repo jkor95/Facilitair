@@ -11,7 +11,7 @@ function server(options={}){
  const records=[],sent=[],logs=[];
  const actor={id:ACTOR,role:options.role||'facility',name:'Fixture',active:true};
  const sub=subscription();
- let handler,claimed=false;
+ let handler,claimed=false,preferences=options.preferences||null;
  const queue=options.queue||[{subscription_id:DEVICE,endpoint:sub.endpoint,...sub.keys,subscription_version:'2026-10-15T10:00:00Z',payload:{eventId:EVENT,title:'Fixture',body:'Fixture'}}];
  function query(table){
   const q={table,kind:'select',filters:[],values:null};
@@ -27,6 +27,11 @@ function server(options={}){
    if(table==='dm_sessions')data={account_id:ACTOR,expires_at:options.expired?'2000-01-01':new Date(Date.now()+86400000).toISOString()};
    if(table==='dm_accounts')data=q.one?actor:[actor];
    if(table==='dm_settings')data=options.settings||[];
+   if(table==='dm_push_preferences'){
+    if(options.preferenceError)return Promise.resolve({data:null,error:{message:'Sensitive preference failure'}}).then(resolve,reject);
+    if(q.kind==='upsert')preferences={laag:q.values.laag,normaal:q.values.normaal,hoog:q.values.hoog,spoed:q.values.spoed};
+    data=preferences;
+   }
    if(table==='dm_ticket_on_way')data=options.onWay||[];
    if(table==='dm_ticket_assignments')data=options.assignments||[];
    if(table==='dm_tickets')data=q.one?(options.ticket||{id:41,status:'open',urgency:'normaal',assignee:null}):(options.tickets||[]);
@@ -69,7 +74,7 @@ test('Pushsubscripties staan alleen bekende HTTPS-pushdiensten met geldige sleut
 
 test('Geen authenticatie of verlopen sessie geeft geen toegang tot push en onderweg',async()=>{
  const api=server();
- for(const action of ['push_register','push_unregister','push_test','on_way_state','set_on_way'])assert.equal((await api.call(action,{},false)).status,401);
+ for(const action of ['push_register','push_unregister','push_test','push_preferences','on_way_state','set_on_way'])assert.equal((await api.call(action,{},false)).status,401);
  assert.equal((await server({expired:true}).call('push_config')).status,401);
  assert.equal(api.records.length,0);
 });
@@ -79,6 +84,7 @@ test('Publieke health en eigen pushconfig lekken geen private sleutels',async()=
  const health=await api.call('health',{},false);
  assert.equal(health.body.features.onWay,1);
  assert.equal(health.body.features.onWayUnassigned,1);
+ assert.equal(health.body.features.pushUrgencies,1);
  const config=await api.call('push_config');
  assert.equal(config.body.publicKey,'fixture-public');
  assert(!JSON.stringify(config).includes('fixture-private'));
@@ -203,4 +209,33 @@ test('Pushfouten maken een geslaagde ticketopslag niet ongedaan en lekken geen d
  const disabled=server({configured:false});
  await disabled.deliverTicketPush(41);
  assert(!disabled.records.some(r=>r.rpc==='dm_pending_ticket_push'));
+});
+
+test('Persoonlijke urgentiekeuze wordt uitsluitend voor het eigen account gelezen en opgeslagen',async()=>{
+ const api=server();
+ assert.deepEqual((await api.call('push_preferences')).body.urgencies,{laag:false,normaal:false,hoog:true,spoed:true});
+ const urgencies={laag:true,normaal:true,hoog:false,spoed:false};
+ assert.deepEqual((await api.call('push_preferences',{urgencies,accountId:'ander-account'})).body.urgencies,urgencies);
+ assert.deepEqual((await api.call('push_preferences')).body.urgencies,urgencies);
+ const write=api.records.find(r=>r.table==='dm_push_preferences'&&r.kind==='upsert');
+ assert.equal(write.values.account_id,ACTOR);
+ for(const read of api.records.filter(r=>r.table==='dm_push_preferences'&&r.kind==='select'))assert(read.filters.some(f=>f[1]==='account_id'&&f[2]===ACTOR));
+ const off={laag:false,normaal:false,hoog:false,spoed:false};
+ assert.deepEqual((await api.call('push_preferences',{urgencies:off})).body.urgencies,off);
+});
+
+test('Pushvoorkeuren weigeren ongeldige invoer en onbevoegde accounts, zonder verlies van bestaande keuze',async()=>{
+ const original={laag:true,normaal:false,hoog:true,spoed:false},api=server({preferences:original});
+ for(const urgencies of [null,[],{},'hoog',{...original,spoed:'false'},{laag:true},{...original,account_id:'ander'}])assert.equal((await api.call('push_preferences',{urgencies})).status,400);
+ assert(!api.records.some(r=>r.table==='dm_push_preferences'&&r.kind==='upsert'));
+ assert.deepEqual((await api.call('push_preferences')).body.urgencies,original);
+ for(const settings of [{facility:{notifications:false}},{facility:{viewAllTickets:false}}]){
+  const denied=server({settings:[{key:'rolePermissions',value:settings}]});
+  assert.equal((await denied.call('push_preferences',{urgencies:original})).status,403);
+  assert(!denied.records.some(r=>r.table==='dm_push_preferences'));
+ }
+ assert.equal((await server({role:'staff'}).call('push_preferences')).status,403);
+ const broken=await server({preferenceError:true,allowLogs:true}).call('push_preferences');
+ assert.equal(broken.status,500);
+ assert(!JSON.stringify(broken).includes('Sensitive'));
 });

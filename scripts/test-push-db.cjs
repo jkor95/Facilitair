@@ -33,6 +33,8 @@ async function main(){
  run(broadcast);run(broadcast);
  const unassigned=fs.readFileSync(path.join(root,'supabase/UPGRADE-v5.9.2-ONDERWEG-ZONDER-TOEWIJZING.sql'),'utf8');
  run(unassigned);run(unassigned);
+ const preferences=fs.readFileSync(path.join(root,'supabase/UPGRADE-v5.9.3-PERSOONLIJKE-PUSH.sql'),'utf8');
+ run(preferences);run(preferences);
  run(fs.readFileSync(path.join(root,'scripts/push.test.sql'),'utf8'));
  console.log('PostgreSQL: herhaalbare migratie, ontvangers, urgenties, eigen status, rechten, audit en claim-deduplicatie OK');
  // Concurrerende requests op dezelfde melding moeten exact één overgang opleveren.
