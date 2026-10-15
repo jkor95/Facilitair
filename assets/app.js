@@ -14,7 +14,7 @@ let db={version:5.89,currentAccount:null,accounts:[],tickets:[],routing:{},setti
 let publicView=true, managementViewMode=false, loading=false, knownTicketKeys=new Set();
 let visitCutoffCache=new Map(), duplicateCandidates=[], duplicateTimer=null;
 let publicOutageCategoryOrderDraft=[];
-let publicOutages=[];
+let publicOutages=[],publicOutagesLoading=false,publicOutagesError=false,publicOutagesRevision=0;
 let serverFeatures={},pushPublicKey='',onWaySyncBusy=false,onWayRevision=0;
 const onWayPending=new Set();
 let publicAccessToken=localStorage.getItem(PUBLIC_ACCESS_TOKEN_KEY)||sessionStorage.getItem(PUBLIC_ACCESS_TOKEN_KEY)||'';
@@ -167,10 +167,21 @@ function openCountFor(id){return db.tickets.filter(t=>t.status!=='done'&&(!id||t
 function routeAssignment(category){return db.routing[category]||{all:false,accountIds:[]}}
 async function refreshState(){if(!token)return;loading=true;try{const out=await api('state');const next=out.state;const nextKeys=new Set((next.tickets||[]).map(t=>String(t.dbId||t.id)));const nr=next.currentAccount?.role,np=next.settings?.rolePermissions?.[nr]||{};if(knownTicketKeys.size&&isOperationalRole(nr)&&notificationsEnabled()&&np.notifications!==false){const fresh=(next.tickets||[]).filter(t=>t.status!=='done'&&!knownTicketKeys.has(String(t.dbId||t.id))&&urgencyNotificationsEnabled(t.urgency)&&ticketMatchesNotificationScope(t,next.currentAccount));if(fresh.length===1)localNotify('Nieuwe facilitaire melding',`${fresh[0].id}: ${fresh[0].title}`);else if(fresh.length>1)localNotify('Nieuwe facilitaire meldingen',`${fresh.length} nieuwe meldingen ontvangen`)}knownTicketKeys=nextKeys;db=next;}finally{loading=false}}
 async function refreshPublicConfig(){try{const out=await api('public_config',{},false);if(out.settings)db.settings={...db.settings,...out.settings}}catch{}}
-async function refreshPublicOutages(){try{const out=await api('public_outages',{accessToken:publicAccessToken||''},false);publicOutages=Array.isArray(out.items)?out.items:[]}catch{publicOutages=[]}}
+async function refreshPublicOutages(){
+ const revision=++publicOutagesRevision;publicOutagesLoading=true;publicOutagesError=false;
+ try{const out=await api('public_outages',{accessToken:publicAccessToken||''},false);if(revision===publicOutagesRevision)publicOutages=Array.isArray(out.items)?out.items:[]}
+ catch{if(revision===publicOutagesRevision){publicOutages=[];publicOutagesError=true}}
+ finally{if(revision===publicOutagesRevision){publicOutagesLoading=false;drawPublicOutages()}}
+}
+function drawPublicOutages(){
+ const details=$('#publicOutagesDetails'),section=details?.closest('.public-outages');if(!section)return;
+ const open=details.open,focused=section.contains(document.activeElement);
+ section.outerHTML=publicOutageHtml();wirePublicOutagesDetails();
+ const next=$('#publicOutagesDetails');if(next){next.open=open;if(focused)next.querySelector('summary')?.focus()}
+}
 async function validateStoredPublicAccess(){if(currentAccount()||db.settings.publicAccessGateEnabled!==true||!publicAccessToken)return;try{await api('validate_public_access_token',{accessToken:publicAccessToken},false)}catch{publicAccessToken='';localStorage.removeItem(PUBLIC_ACCESS_TOKEN_KEY);sessionStorage.removeItem(PUBLIC_ACCESS_TOKEN_KEY)}}
 function publicOutageTicketHtml(t){return `<div class="ticket public-ticket"><div class="ticket-head"><div><div class="ticket-title">${esc(t.title)}</div><div class="ticket-meta">${esc(t.id)} · ${esc(t.location)} · ${esc(t.category)}</div></div><span class="chip ${esc(t.urgency)}">${esc(urgencyLabel[t.urgency]||t.urgency)}</span></div><div class="ticket-meta">Status: ${esc(statuses[t.status]||t.status)} · gemeld ${fmt(t.createdAt)}</div></div>`}
-function publicOutageHtml(){if(db.settings.publicOutageOverview===false)return '';const items=publicOutages||[],grouped=db.settings.publicOutageSort==='category';let body='';if(items.length&&grouped){const groups=[];for(const t of items){let g=groups.find(x=>x.category===t.category);if(!g){g={category:t.category,items:[]};groups.push(g)}g.items.push(t)}body=`<div class="public-outage-groups">${groups.map(g=>`<div class="public-outage-group"><h3>${esc(g.category)} <span class="muted">(${g.items.length})</span></h3><div class="list">${g.items.map(publicOutageTicketHtml).join('')}</div></div>`).join('')}</div>`}else if(items.length){body=`<div class="list">${items.map(publicOutageTicketHtml).join('')}</div>`}else body='<div class="empty">Er zijn momenteel geen openstaande meldingen.</div>';return `<section class="card span-12 public-outages collapsible-card"><details id="publicOutagesDetails"><summary><span>Actuele meldingen${items.length?` (${items.length})`:''}</span><span class="collapse-hint">Openen/sluiten</span></summary><div class="collapsible-content"><p class="sub public-outage-intro">Controleer hier of een melding al is gemaakt voordat je een nieuwe melding maakt.</p>${body}</div></details></section>`}
+function publicOutageHtml(){if(db.settings.publicOutageOverview===false)return '';const items=publicOutages||[],grouped=db.settings.publicOutageSort==='category';let body='';if(publicOutagesLoading)body='<div class="empty" role="status">Actuele meldingen worden geladen…</div>';else if(publicOutagesError)body='<div class="empty" role="status">Actuele meldingen konden niet worden geladen. Probeer het later opnieuw.</div>';else if(items.length&&grouped){const groups=[];for(const t of items){let g=groups.find(x=>x.category===t.category);if(!g){g={category:t.category,items:[]};groups.push(g)}g.items.push(t)}body=`<div class="public-outage-groups">${groups.map(g=>`<div class="public-outage-group"><h3>${esc(g.category)} <span class="muted">(${g.items.length})</span></h3><div class="list">${g.items.map(publicOutageTicketHtml).join('')}</div></div>`).join('')}</div>`}else if(items.length){body=`<div class="list">${items.map(publicOutageTicketHtml).join('')}</div>`}else body='<div class="empty">Er zijn momenteel geen openstaande meldingen.</div>';return `<section class="card span-12 public-outages collapsible-card" aria-busy="${publicOutagesLoading}"><details id="publicOutagesDetails"><summary><span>Actuele meldingen${items.length?` (${items.length})`:''}</span><span class="collapse-hint">Openen/sluiten</span></summary><div class="collapsible-content"><p class="sub public-outage-intro">Controleer hier of een melding al is gemaakt voordat je een nieuwe melding maakt.</p>${body}</div></details></section>`}
 function wirePublicOutagesDetails(){const el=$('#publicOutagesDetails');if(!el)return;const key='dm_public_meldingen_open_v588',saved=localStorage.getItem(key);el.open=saved==='1';el.ontoggle=()=>localStorage.setItem(key,el.open?'1':'0')}
 function notificationPrefKey(){const a=currentAccount();return `dalton_notifications_${a?.id||'guest'}`}
 function notificationUrgencyKey(){const a=currentAccount();return `dalton_notification_urgencies_${a?.id||'guest'}`}
@@ -183,11 +194,11 @@ function notificationUrgencies(){const raw=localStorage.getItem(notificationUrge
 function urgencyNotificationsEnabled(urgency){return notificationUrgencies()[urgency]!==false}
 function setUrgencyNotification(urgency,enabled){const prefs=notificationUrgencies();prefs[urgency]=!!enabled;localStorage.setItem(notificationUrgencyKey(),JSON.stringify(prefs));return updateBadge()}
 async function updateBadge(){const a=currentAccount();const operational=isOperationalRole(a?.role),p=operational?rolePermissions(a.role):{};const enabled=operational?p.notifications!==false&&notificationsEnabled():true;const n=operational&&enabled?db.tickets.filter(t=>t.status!=='done'&&urgencyNotificationsEnabled(t.urgency)&&ticketMatchesNotificationScope(t,a)).length:a?.role==='admin'?db.tickets.filter(t=>t.status!=='done').length:0;try{if('setAppBadge'in navigator)n?await navigator.setAppBadge(n):await navigator.clearAppBadge()}catch{}}
-function localNotify(title,body){if(!notificationsEnabled()||!('Notification'in window)||Notification.permission!=='granted')return;try{new Notification(title,{body,icon:'assets/icon-192.png?v=5.9.3'})}catch{}}
+function localNotify(title,body){if(!notificationsEnabled()||!('Notification'in window)||Notification.permission!=='granted')return;try{new Notification(title,{body,icon:'assets/icon-192.png?v=5.9.4'})}catch{}}
 async function setFacilityNotifications(enabled){const a=currentAccount();if(!a||!isOperationalRole(a.role)||rolePermissions(a.role).notifications===false)return;if(enabled&&'Notification'in window&&Notification.permission==='default'){const p=await Notification.requestPermission();if(p!=='granted'){localStorage.setItem(notificationPrefKey(),'0');await updateBadge();throw new Error('Meldingen zijn niet toegestaan op dit apparaat. Sta meldingen toe in de browser- of iPhone-instellingen.')}}if(enabled&&'Notification'in window&&Notification.permission==='denied')throw new Error('Meldingen zijn geblokkeerd op dit apparaat. Zet ze eerst aan in de browser- of iPhone-instellingen.');localStorage.setItem(notificationPrefKey(),enabled?'1':'0');await updateBadge()}
 function showError(err){const msg=err?.message||(typeof err==='string'?err:(()=>{try{return JSON.stringify(err)}catch{return String(err)}})());alert(msg||'Onbekende fout')}
 function header(){const a=currentAccount();return `<header class="topbar"><div class="brand"><div class="logo"><img src="assets/logo-meldpunt-vwo.png" alt="Meldpunt VWO"></div><div><h1>${esc(C.appName)}</h1><p>${esc(C.schoolName)}</p></div></div><div class="top-actions">${a?`<span class="user-pill"><b>${esc(a.username)}</b> · ${esc(a.name)}</span><button class="btn ghost small" id="refreshBtn">↻ Vernieuwen</button><button class="btn ghost small" id="logoutBtn">Uitloggen</button>`:`<button class="btn secondary small" id="loginBtn">Inloggen</button>`}</div></header>`}
-function shell(content){$('#app').innerHTML=`<div class="shell">${header()}${content}</div>`;$('#loginBtn')?.addEventListener('click',()=>showLogin());$('#logoutBtn')?.addEventListener('click',logout);$('#refreshBtn')?.addEventListener('click',async()=>{try{await refreshState();render()}catch(e){showError(e)}});updateBadge()}
+function shell(content){$('#app').removeAttribute('aria-busy');$('#app').innerHTML=`<div class="shell">${header()}${content}</div>`;$('#loginBtn')?.addEventListener('click',()=>showLogin());$('#logoutBtn')?.addEventListener('click',logout);$('#refreshBtn')?.addEventListener('click',async()=>{try{await refreshState();render()}catch(e){showError(e)}});updateBadge()}
 function publicNav(){const a=currentAccount();return a?`<div class="public-nav"><button class="btn ghost" id="navDashboard">${a.role==='admin'?'Beheer':isOperationalRole(a.role)?roleLabel(a.role):'Mijn account'}</button></div>`:''}
 async function logout(){if(token&&currentAccount()&&localStorage.getItem(pushEnabledKey())==='1'){try{await disableWebPush()}catch{}}try{if(token)await api('logout',{},true)}catch{}token='';localStorage.removeItem(TOKEN_KEY);db.currentAccount=null;publicView=true;managementViewMode=false;render()}
 
@@ -363,6 +374,25 @@ async function render(){
  }
 }
 
-async function init(){if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=5.9.3').catch(()=>{});if(!apiConfigured()){shell(`<div class="grid"><section class="card span-12"><h2>Systeemconfiguratie ontbreekt</h2><p>De centrale service is nog niet gekoppeld. Neem contact op met de beheerder.</p></section></div>`,{notice:false});return}try{const health=await api('health',{},false);serverFeatures=health.features||{};await refreshPublicConfig();await validateStoredPublicAccess();await refreshPublicOutages();await render();syncWebPush();navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='DM_PUSH_RENEW_REQUIRED')syncWebPush()});if(serverFeatures.onWay===1)setInterval(refreshOnWay,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshOnWay();syncWebPush()}});if(token)setInterval(async()=>{try{await refreshState();await updateBadge()}catch{}},30000)}catch(err){shell(`<div class="grid"><section class="card span-12"><h2>Centrale service niet bereikbaar</h2><div class="errorbox">${esc(err.message)}</div><p>Probeer het later opnieuw of neem contact op met de beheerder.</p></section></div>`,{notice:false})}}
+async function init(){
+ if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=5.9.4').catch(()=>{});
+ if(!apiConfigured()){shell(`<div class="grid"><section class="card span-12"><h2>Systeemconfiguratie ontbreekt</h2><p>De centrale service is nog niet gekoppeld. Neem contact op met de beheerder.</p></section></div>`);return}
+ try{
+  // Onafhankelijke verzoeken tegelijk; pas tekenen na instellingen en toegangscontrole.
+  const [health]=await Promise.all([api('health',{},false),refreshPublicConfig()]);
+  serverFeatures=health.features||{};
+  await validateStoredPublicAccess();
+  const outagesReady=refreshPublicOutages();
+  await render();
+  syncWebPush();
+  navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='DM_PUSH_RENEW_REQUIRED')syncWebPush()});
+  if(serverFeatures.onWay===1)setInterval(refreshOnWay,5000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshOnWay();syncWebPush()}});
+  if(token)setInterval(async()=>{try{await refreshState();await updateBadge()}catch{}},30000);
+  // Het overzicht ververst zichzelf, zonder formulierinvoer of focus te verliezen.
+  await outagesReady;
+ }catch(err){shell(`<div class="grid"><section class="card span-12"><h2>Centrale service niet bereikbaar</h2><div class="errorbox">${esc(err.message)}</div><p>Probeer het later opnieuw of neem contact op met de beheerder.</p></section></div>`)}
+}
+
 init();
 })();

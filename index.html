@@ -9,14 +9,30 @@
   <meta name="apple-mobile-web-app-title" content="Meldpunt VWO" />
   <title>Meldpunt VWO</title>
   <link rel="canonical" href="https://meldpuntvwo.nl/" />
-  <link rel="manifest" href="manifest.webmanifest?v=5.9.3" />
-  <link rel="apple-touch-icon" href="assets/icon-192.png?v=5.9.3" />
-  <link rel="icon" type="image/png" href="assets/icon-192.png?v=5.9.3" />
-  <link rel="stylesheet" href="assets/styles.css?v=5.9.3" />
+  <style>
+    html{background:#f4f7f8}
+    .startup-shell{max-width:1180px;margin:auto;padding:18px 16px;color:#17313a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    .startup-shell .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .startup-shell .logo{width:118px;height:64px;flex:0 0 118px}
+    .startup-shell .logo img{width:100%;height:100%;object-fit:contain}
+    .startup-shell h1{font-size:21px;margin:0}
+    .startup-shell .brand p{margin:2px 0;color:#6a7f87;font-size:13px}
+    .startup-card{background:white;border:1px solid #dbe5e7;border-radius:18px;padding:18px}
+    .startup-card h2{margin:0 0 12px;font-size:20px}
+  </style>
+  <link rel="manifest" href="manifest.webmanifest?v=5.9.4" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png?v=5.9.4" />
+  <link rel="icon" type="image/png" href="assets/icon-192.png?v=5.9.4" />
+  <link rel="stylesheet" href="assets/styles.css?v=5.9.4" />
 </head>
 <body>
-  <div id="app"></div>
-  <script src="assets/config.js?v=5.9.3"></script>
-  <script src="assets/app.js?v=5.9.3" defer></script>
+  <div id="app" aria-busy="true">
+    <div class="startup-shell">
+      <header class="brand"><div class="logo"><img src="assets/logo-meldpunt-vwo.png" alt="Meldpunt VWO" width="118" height="64"></div><div><h1>Meldpunt VWO</h1><p>Stedelijk Dalton Lyceum Dordrecht</p></div></header>
+      <main class="startup-card"><h2>Welkom bij Meldpunt VWO</h2><p id="startupStatus" role="status">De pagina wordt geladen. Een ogenblik…</p><noscript><p>Schakel JavaScript in om Meldpunt VWO te gebruiken.</p></noscript></main>
+    </div>
+  </div>
+  <script src="assets/config.js?v=5.9.4" defer></script>
+  <script src="assets/app.js?v=5.9.4" defer></script>
 </body>
 </html>
