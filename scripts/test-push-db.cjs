@@ -31,6 +31,8 @@ async function main(){
  run(migration);run(migration);
  const broadcast=fs.readFileSync(path.join(root,'supabase/UPGRADE-v5.9.1-HOOG-SPOED-PUSH.sql'),'utf8');
  run(broadcast);run(broadcast);
+ const unassigned=fs.readFileSync(path.join(root,'supabase/UPGRADE-v5.9.2-ONDERWEG-ZONDER-TOEWIJZING.sql'),'utf8');
+ run(unassigned);run(unassigned);
  run(fs.readFileSync(path.join(root,'scripts/push.test.sql'),'utf8'));
  console.log('PostgreSQL: herhaalbare migratie, ontvangers, urgenties, eigen status, rechten, audit en claim-deduplicatie OK');
  // Concurrerende requests op dezelfde melding moeten exact één overgang opleveren.
@@ -38,14 +40,15 @@ async function main(){
  ('30000000-0000-4000-8000-000000000001','Fixture actor','concurrent1','concurrent1','facility','x','x','x','x'),
  ('30000000-0000-4000-8000-000000000002','Fixture ontvanger','concurrent2','concurrent2','facility','x','x','x','x');
  INSERT INTO dm_tickets(id,ticket_no,reporter,location,category,urgency,title,description) VALUES(9001,'CONCURRENT-TEST','Fixture','Testruimte','Test','spoed','Fixture','Fixture');
- INSERT INTO dm_ticket_assignments(ticket_id,account_id) SELECT 9001,id FROM dm_accounts WHERE username_key IN ('concurrent1','concurrent2');
+ INSERT INTO dm_ticket_assignments(ticket_id,account_id) SELECT 9001,id FROM dm_accounts WHERE username_key='concurrent2';
  SELECT dm_register_push('30000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000003','concurrent-hash','https://fcm.googleapis.com/concurrent','fixture','fixture',null);`);
  try{
   const call=id=>`SELECT dm_set_on_way('30000000-0000-4000-8000-000000000001',9001,true,'40000000-0000-4000-8000-00000000000${id}');`;
   await Promise.all([runAsync(`BEGIN;${call(1)}SELECT pg_sleep(0.2);COMMIT;`),runAsync(call(1)),runAsync(call(2))]);
   assert.equal(run("SELECT count(*) FROM dm_push_deliveries d JOIN dm_push_events e ON e.id=d.event_id WHERE e.ticket_id=9001;").trim(),'1');
   assert.equal(run('SELECT count(*) FROM dm_ticket_history WHERE ticket_id=9001;').trim(),'1');
-  console.log('PostgreSQL: drie concurrerende requests => één statusovergang, één historyregel en één push per device');
+  assert.equal(run("SELECT dm_push_assigned(9001,'30000000-0000-4000-8000-000000000001');").trim(),'f');
+  console.log('PostgreSQL: drie concurrerende requests zonder toewijzing => één statusovergang, één historyregel en één push per device');
   run("UPDATE dm_tickets SET urgency='normaal' WHERE id=9001;");
   await Promise.all([runAsync("BEGIN; UPDATE dm_tickets SET urgency='hoog' WHERE id=9001; SELECT pg_sleep(0.2); COMMIT;"),runAsync("UPDATE dm_tickets SET urgency='hoog' WHERE id=9001;")]);
   assert.equal(run("SELECT count(*) FROM dm_push_events WHERE ticket_id=9001 AND kind='urgency_raised';").trim(),'1');

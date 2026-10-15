@@ -1,134 +1,110 @@
-MELDPUNT VWO v5.9.1 – HOOG/SPOED NAAR ALLE BEVOEGDE MEDEWERKERS
-Upgrade vanaf de reeds werkende v5.9.0. Geen nieuwe secrets of sleutels nodig.
-Eerst onderstaande twee Supabase-stappen bevestigen, daarna frontend publiceren.
+MELDPUNT VWO v5.9.2 – ONDERWEG ZONDER TOEWIJZING
+Upgrade vanaf de reeds werkende v5.9.1. Twee handmatige stappen.
+Geen nieuwe secrets, sleutels of apparaatregistratie nodig.
+Eerst onderstaande Supabase-stappen bevestigen, daarna frontend publiceren.
 
-1. PROJECT CONTROLEREN EN BACK-UP
+1. PROJECT EN BACK-UP
 Supabase-project: Dalton meldpunt
 Project-ID: xmmrplvhkfvyfqwjrugl
 Edge Function: smart-function
-Gebruik uitsluitend dit project. Laat LCP, JK Works en Sport ongemoeid.
-
+Laat LCP, JK Works en Sport volledig ongemoeid.
 Maak vooraf een databaseback-up volgens het bestaande beheerproces.
 Bewaar de volledige huidige smart-function-code op een veilige beheerlocatie.
-Controleer dat deze overeenkomt met de versie van tag v5.9.0 in:
-  supabase/functions/dalton-api/index.ts
-Bij afwijkende productieaanpassingen: eerst samenvoegen, niet overschrijven.
+Vergelijk die met tag v5.9.1, supabase/functions/dalton-api/index.ts.
+Bij afwijkende productieaanpassingen eerst samenvoegen, niet overschrijven.
 Bewaar ook de huidige twee SQL-functiedefinities voor gericht herstel.
-Supabase > SQL Editor > New query, voer alleen deze LEESquery uit:
+Supabase > SQL Editor > New query, voer deze LEESquery uit:
   select pg_get_functiondef('public.dm_set_on_way(uuid,bigint,boolean,uuid)'::regprocedure)
   union all
   select pg_get_functiondef('public.dm_claim_push_deliveries(uuid,uuid)'::regprocedure);
 Sla beide volledige resultaatcellen lokaal op als herstel-SQL, niet in chat.
 
-2. ALLEEN DE NIEUWE SQL-UPGRADE UITVOEREN
+2. DE NIEUWE SQL-UPGRADE
 Supabase > SQL Editor > New query.
-Open in de v5.9.1-PR het bestand:
-  supabase/UPGRADE-v5.9.1-HOOG-SPOED-PUSH.sql
-Kies Raw om de volledige inhoud te kopiëren. Plak alles in de SQL Editor.
+Open in de v5.9.2-PR:
+  supabase/UPGRADE-v5.9.2-ONDERWEG-ZONDER-TOEWIJZING.sql
+Kies Raw en kopieer de VOLLEDIGE inhoud. Plak alles in de SQL Editor.
 Controleer het project-ID opnieuw en kies Run.
-Verwacht: uitgevoerd zonder fout. De transactie is herhaalbaar.
-Voer GEEN schema.sql, v5.9.0-upgrade of andere oude upgrades opnieuw uit.
+Verwacht: uitgevoerd zonder fout. Deze nieuwe transactie is herhaalbaar.
+Voer GEEN schema.sql of oude v5.9.0-/v5.9.1-upgrades opnieuw uit.
 
-Deze upgrade:
-- vervangt uitsluitend twee pushfuncties voor bredere ontvangers en claimcontrole;
-- breidt de bestaande pushgebeurtenissen uit met twee systeemtypen;
-- voegt een trigger en een private serverfunctie toe voor nieuwe Hoog/Spoed-
-  meldingen en echte verhogingen naar Hoog/Spoed, inclusief Hoog naar Spoed.
-Er worden geen bestaande tickets, foto's, accounts, toewijzingen, rechten,
-instellingen of historie gewijzigd. Er is geen verzending van oude tickets.
-Alle nieuwe functies blijven uitsluitend voor service_role uitvoerbaar.
-De ticket-/queue-overgang is atomair; ongewijzigd opslaan maakt geen extra push.
+Deze upgrade vervangt uitsluitend twee bestaande private serverfuncties.
+De toewijzingsvoorwaarde voor de onderweg-actor vervalt, ook vlak voor push.
+Bestaande zicht- en afhandelrechten, actieve accounts, open ticketstatus,
+notificatierechten, pushdeduplicatie en alleen-eigen-status blijven gelden.
+Er worden geen tabellen, tickets, foto's, toewijzingen, accounts, historie,
+instellingen of secrets gewijzigd. Oude acties worden niet opnieuw verzonden.
 
-3. VOLLEDIGE SMART-FUNCTION BIJWERKEN
+3. VOLLEDIGE SMART-FUNCTION
 Supabase > Edge Functions > smart-function > Code > index.ts.
-Vervang de volledige inhoud door het bestand uit DEZELFDE v5.9.1-PR:
+Vervang de VOLLEDIGE inhoud door het bestand uit DEZELFDE v5.9.2-PR:
   supabase/functions/dalton-api/index.ts
-Gebruik Raw en kopieer het hele bestand. Kies Deploy updates.
+Kies Raw, kopieer het hele bestand en kies Deploy updates.
 Gebruik geen andere index.ts uit de repository.
-Behoud alle bestaande gateway-/JWT-instellingen en secrets.
-De vier eerder ingestelde DM_*-pushsecrets blijven ongewijzigd:
-DM_VAPID_PUBLIC_KEY, DM_VAPID_PRIVATE_KEY, DM_VAPID_SUBJECT,
-DM_WEB_PUSH_ENABLED=true. Genereer geen nieuwe VAPID-sleutels.
-De bestaande apparaatregistraties blijven werken; niet opnieuw aanmelden nodig.
+Deze versie toont ook onderweg-statussen van niet-toegewezen medewerkers,
+met behoud van het bestaande recht om colleganamen te zien.
+Behoud alle bestaande secrets en gateway-/JWT-instellingen.
+Genereer geen nieuwe VAPID-sleutels. Bestaande iPhone-aanmelding blijft bruikbaar.
 
-4. INSTALLATIE CONTROLEREN EN BEVESTIGEN
-Voer in de SQL Editor alleen deze LEESquery uit:
-  select exists(select 1 from pg_trigger
-    where tgrelid='public.dm_tickets'::regclass
-      and tgname='dm_urgent_ticket_push' and tgenabled='O') as trigger_actief,
-    to_regprocedure('public.dm_pending_ticket_push(bigint)') is not null as queue_beschikbaar,
-    position('where s.account_id<>p_actor' in
-      pg_get_functiondef('public.dm_set_on_way(uuid,bigint,boolean,uuid)'::regprocedure))>0
-      and position('and dm_push_assigned(p_ticket,s.account_id)' in
-      pg_get_functiondef('public.dm_set_on_way(uuid,bigint,boolean,uuid)'::regprocedure))=0
+4. CONTROLEREN EN BEVESTIGEN VÓÓR FRONTENDPUBLICATIE
+Supabase > SQL Editor, alleen deze LEESquery:
+  select position('dm_push_assigned' in
+    pg_get_functiondef('public.dm_set_on_way(uuid,bigint,boolean,uuid)'::regprocedure))=0
+      as onderweg_zonder_toewijzing,
+    position('dm_push_assigned' in
+    pg_get_functiondef('public.dm_claim_push_deliveries(uuid,uuid)'::regprocedure))=0
       as push_zonder_toewijzing;
-Alle drie kolommen moeten true zijn.
-Controleer in de Edge Function-tester met POST-body {"action":"health"}:
-  features.urgentBroadcast = 1
-Een health-response bevestigt ondersteuning, niet daadwerkelijke aflevering.
-Controleer ook bestaande login, ticketdetails, foto's en geschiedenis.
-Bevestig vervolgens dat SQL en smart-function in het juiste project zijn
-bijgewerkt. Pas daarna deze frontend-PR samenvoegen en de exacte GitHub Pages-
-mergecommit controleren. De backend werkt ook met de oude v5.9.0-frontend.
+Beide kolommen moeten true zijn.
+Edge Function-tester, POST-body {"action":"health"}:
+  features.onWayUnassigned = 1
+Dit bewijst ondersteuning, niet daadwerkelijke aflevering op een iPhone.
+Controleer bestaande login, ticketdetails, foto's en historie.
+Bevestig vervolgens dat beide stappen in het juiste project zijn uitgevoerd.
+Daarna pas de frontend-PR samenvoegen en de exacte Pages-mergecommit controleren.
+De nieuwe backend werkt ook met de bestaande v5.9.1-frontend; de nieuwe
+frontend toont de extra knoppen alleen bij features.onWayUnassigned=1.
 
-5. WAT IEDEREEN ONTVANGT
-Alle actieve Beheerders, Facilitair en Conciërges met bestaande zicht- en
-notificatierechten en een geldig aangemeld pushapparaat ontvangen:
-- een nieuwe Hoog/Spoed-melding, ook zonder toewijzing;
-- verhoging van Laag/Normaal naar Hoog/Spoed of van Hoog naar Spoed;
-- een nieuwe onderweg-actie bij Hoog/Spoed van een andere medewerker.
-Aanmaken/verhogen gaat ook naar de medewerker die de actie uitvoert.
-Onderweg gaan geeft geen zelfmelding. De actor moet hiervoor nog steeds aan
-een open ticket toegewezen zijn en afhandelrechten hebben.
-Zonder toewijzingszicht staat er 'Een medewerker' in plaats van een colleganaam.
-Vlak voor verzenden worden rechten, actief account, abonnement, urgentie en
-open status opnieuw gecontroleerd. Geen push naar gewone publieke melders.
-Geen push bij Laag/Normaal, verlagen, intrekken of ongewijzigd opslaan.
+5. GEBRUIK NA FRONTENDPUBLICATIE
+Open de geïnstalleerde app opnieuw. Bij Aan mij toegewezen én Algemene
+meldingen staat bij iedere zichtbare open melding 'Ik ben onderweg'.
+De knop staat ook in de ticketdetails. Voorwaarde blijft een actieve bevoegde
+Beheerder/Facilitair/Conciërge met bestaande zicht- en afhandelrechten.
+Het ticket hoeft niet aan jou of iemand anders toegewezen te zijn.
+Onderweg verandert geen toewijzing of ticketstatus en verplaatst het ticket
+niet naar Aan mij toegewezen. De eigen knop wordt 'Onderweg intrekken'.
+Je kunt uitsluitend je eigen status intrekken; collega-statussen blijven staan.
+Andere geopende werkpagina's synchroniseren binnen circa vijf seconden.
+Bij afgeronde meldingen blijft de knop verborgen.
 
-Mijn account (Hoofdbeheer: Algemene instellingen) > Test pushmelding test
-uitsluitend je eigen apparaat. Dat werkt onafhankelijk van tickettoewijzing.
-iPhone: gebruik de via Safari op het beginscherm geïnstalleerde webapp,
-iOS 16.4 of nieuwer, met toestemming voor push en passende OS-instellingen.
-Controleer bij de volgende bedoelde Hoog/Spoed-actie ook een niet-toegewezen
-bevoegd apparaat. Een echte Hoog/Spoed-test bereikt nu alle aangemelde bevoegde
-apparaten, dus geen fictieve productiemeldingen maken als dat niet gewenst is.
-Codex voert uitsluitend lokale tests met fixtures en mocks uit.
+Hoog/Spoed-onderweg geeft één push per aangemeld apparaat van alle andere
+actieve bevoegde medewerkers. Je eigen onderweg-actie geeft geen zelfmelding.
+Laag/Normaal registreert onderweg zonder push. Aanmaken en verhogen naar
+Hoog/Spoed blijven de v5.9.1-broadcast gebruiken, ook naar de uitvoerder.
+Verborgen colleganamen blijven verborgen in status en push.
+Push blijft afhankelijk van apparaat, toestemming, netwerk en provider.
+Een echte Hoog/Spoed-actie bereikt alle bevoegde aangemelde apparaten.
+Codex test uitsluitend met lokale fixtures/mocks en maakt geen productietickets.
 
-6. BEPERKINGEN
-Push is afhankelijk van toestel, toestemming, netwerk en pushprovider.
-Bij onzekere verzending wordt niet blind opnieuw verzonden, om duplicaten te
-voorkomen. Een succesvolle ticketopslag blijft succesvol bij een pushfout.
-Bij een queuefout logt de functie alleen een generieke fout zonder gegevens of secrets.
-Wachtende ticketpush kan bij een volgende bewerking binnen één uur alsnog
-verzonden worden. Reeds geclaimde verzendingen worden niet opnieuw geprobeerd.
-Er is geen achtergrondplanner en geen garantie op aflevering.
-Een push kan locatie/ticketnummer en eventueel een colleganaam op het
-vergrendelscherm tonen; de bestaande zichtrechten blijven gerespecteerd.
+6. HERSTEL ZONDER GEGEVENSVERLIES
+Zet bij problemen DM_WEB_PUSH_ENABLED=false in DIT project om nieuwe
+pushverzending te stoppen. Geaccepteerde berichten zijn niet terug te halen.
+Herstel de twee vooraf bewaarde volledige SQL-functiedefinities en de
+vooraf geëxporteerde smart-function-code. Voer geen volledige oude upgrade uit.
+Herstel frontend zo nodig via een nieuwe herstelbranch/PR naar tag v5.9.1.
+Geen tabellen, tickets, statusrijen of historie verwijderen.
+Bewaarde nieuwe onderweg-statussen blijven bestaan; de oude backend toont ze
+alleen als de medewerker ook toegewezen is. Zet verzending pas na controle aan.
 
-7. HERSTEL ZONDER GEGEVENSVERLIES
-Zet bij problemen eerst DM_WEB_PUSH_ENABLED=false in DIT project.
-Dit stopt nieuwe verzending; reeds geaccepteerde berichten zijn niet terug te halen.
-Om ook nieuwe ticketqueue-gebeurtenissen te stoppen, SQL Editor:
-  drop trigger if exists dm_urgent_ticket_push on public.dm_tickets;
-Plak daarna de twee eerder bewaarde volledige SQL-functiedefinities en voer ze
-uit. Herstel de eerder geëxporteerde volledige smart-function-code.
-Gebruik NIET de volledige oude v5.9.0-migratie als herstel.
-Laat nieuwe private functies en uitbreidingen aan de pushtabel staan: ze zijn
-zonder de trigger ongebruikt en zo blijven push-/auditgegevens behouden.
-Geen tabellen of gegevens verwijderen en geen databaseherstel uitvoeren.
-Herstel frontend zo nodig via een nieuwe herstelbranch/PR naar tag v5.9.0.
-Zet verzending pas weer aan na controle; wachtende events vervallen na één uur.
-
-8. GEÏSOLEERDE ONTWIKKELCONTROLES
+7. GEÏSOLEERDE ONTWIKKELCONTROLES
   node scripts/check.cjs
   node --test scripts/*.test.cjs
   deno check --no-lock supabase/functions/dalton-api/index.ts
-Lokale PostgreSQL 17-database meldpunt_push_test, uitsluitend fixtures:
+PostgreSQL 17, uitsluitend fixture-database meldpunt_push_test:
   node scripts/test-push-db.cjs
 Cloudfixturecontainer meldpunt-push-fixtures:
   node scripts/test-push-db.cjs --docker
 Python 3 + playwright==1.62.0 en Chromium/Google Chrome:
   python3 scripts/push.browser.test.py
-De CI test ook echte Web Push-versleuteling tegen een lokale TLS-pushdienst.
-Deze controles maken geen contact met productie-Supabase of echte pushproviders.
-Productie-installatie, GitHub-publicatie en iPhone-ontvangst apart bevestigen.
+CI test daarnaast Web Push-versleuteling tegen een lokale TLS-dienst.
+Geen productie-Supabase of echte pushproviders worden door deze tests gebruikt.
+Productie-installatie, websitepublicatie en iPhone-ontvangst apart bevestigen.

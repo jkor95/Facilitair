@@ -78,6 +78,7 @@ test('Publieke health en eigen pushconfig lekken geen private sleutels',async()=
  const api=server();
  const health=await api.call('health',{},false);
  assert.equal(health.body.features.onWay,1);
+ assert.equal(health.body.features.onWayUnassigned,1);
  const config=await api.call('push_config');
  assert.equal(config.body.publicKey,'fixture-public');
  assert(!JSON.stringify(config).includes('fixture-private'));
@@ -121,6 +122,22 @@ test('Verborgen toewijzingen lekken geen namen van onderweg-collega’s',async()
  assert.equal(result.body.rows.length,1);
  assert.equal(result.body.rows[0].accountId,ACTOR);
  assert(!JSON.stringify(result.body).includes('Verborgen naam'));
+});
+
+test('Onderweg zonder toewijzing blijft zichtbaar in volledige state en polling',async()=>{
+ const other='00000000-0000-4000-8000-000000000002';
+ const onWay=[ACTOR,other].map(id=>({ticket_id:1,account_id:id,since:'2026-10-15T10:00:00Z',dm_accounts:{name:id===ACTOR?'Eigen fixture':'Andere fixture',active:true}}));
+ for(const hidden of [false,true]){
+  const api=server({onWay,tickets:[{id:1,status:'open',urgency:'hoog'}],assignments:[],settings:hidden?[{key:'rolePermissions',value:{facility:{viewAssignment:false,editAssignment:false}}}]:[]});
+  const poll=await api.call('on_way_state');
+  const full=await api.call('state');
+  assert.equal(poll.body.rows.length,hidden?1:2);
+  assert.equal(full.body.state.tickets[0].onWay.length,hidden?1:2);
+  assert.equal(full.body.state.tickets[0].assignees.length,0);
+  if(hidden){assert(!JSON.stringify(poll.body).includes('Andere fixture'));assert(!JSON.stringify(full.body.state.tickets[0]).includes('Andere fixture'))}
+ }
+ const denied=server({onWay,settings:[{key:'rolePermissions',value:{facility:{viewAllTickets:false}}}]});
+ assert.equal((await denied.call('on_way_state')).body.rows.length,0);
 });
 
 test('Pushdispatcher claimt eenmaal, verzendt echte payloadstructuur en bevestigt resultaat',async()=>{
