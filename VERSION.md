@@ -1,4 +1,4 @@
-# Meldpunt VWO v5.9.0 (voorbereid; Supabase-installatie vereist)
+# Meldpunt VWO v5.9.0
 
 ## Wijzigingen
 - Toegewezen bevoegde medewerkers kunnen onafhankelijk aangeven dat zij onderweg zijn en dit weer intrekken.

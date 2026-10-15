@@ -1,5 +1,5 @@
 MELDPUNT VWO v5.9.0 – ONDERWEG EN WEB PUSH
-Status: implementatie voor review; backend en frontend nog NIET gepubliceerd.
+Installatievolgorde: eerst backend installeren en bevestigen, daarna frontend publiceren.
 
 1. PROJECT EN BACK-UP
 Open Supabase en controleer eerst:
